@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Trading Alerts Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              background: '#0A0C10',
+              surface: '#11131A',
+              border: '#21262D',
+              glass: 'rgba(17, 19, 26, 0.6)',
+
+              text: {
+                primary: '#E6EDF3',
+                secondary: '#8B949E',
+                dim: '#484F58',
+              },
+
+              brand: {
+                DEFAULT: '#388BFD',
+                hover: '#58A6FF',
+              },
+              
+              accent: {
+                green: '#238636',
+                greenHover: '#2EA043',
+                red: '#DA3633',
+                redHover: '#F85149',
+                yellow: '#F7B93E',
+              },
+
+              white: {
+                DEFAULT: '#FFFFFF',
+                '5': 'rgba(255, 255, 255, 0.05)',
+                '10': 'rgba(255, 255, 255, 0.1)',
+                '20': 'rgba(255, 255, 255, 0.2)',
+              }
+            },
+            boxShadow: {
+              'glow-brand': '0 0 20px 0 rgba(56, 139, 253, 0.25)',
+              'glow-green': '0 0 15px 0 rgba(35, 134, 54, 0.4)',
+              'glow-red': '0 0 15px 0 rgba(218, 54, 51, 0.4)',
+              'glow-yellow': '0 0 15px 0 rgba(247, 185, 62, 0.4)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      .tabular-nums {
+        font-feature-settings: 'tnum' on, 'lnum' on;
+      }
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #0A0C10;
+        background-image: radial-gradient(circle at top left, rgba(56, 139, 253, 0.1), transparent 30%),
+                          radial-gradient(circle at bottom right, rgba(35, 134, 54, 0.1), transparent 40%);
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #11131A;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #21262D;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #484F58;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "recharts": "https://aistudiocdn.com/recharts@^3.1.2",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.15.0",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^11.3.11",
+    "lightweight-charts": "https://aistudiocdn.com/lightweight-charts@^4.1.6"
+  }
+}
+</script>
+</head>
+  <body class="text-text-primary">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

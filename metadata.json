@@ -1,0 +1,5 @@
+{
+  "name": "AI Trading Alerts Dashboard",
+  "description": "A web dashboard for traders to manage active trades, view performance, and receive real-time alerts with AI-powered commentary when take-profit or stop-loss levels are hit.",
+  "requestFramePermissions": []
+}
