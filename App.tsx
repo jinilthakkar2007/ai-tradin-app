@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader } from './types';
@@ -22,6 +20,7 @@ import QuickTradeModal from './components/QuickTradeModal';
 import OnboardingModal from './components/OnboardingModal';
 import BacktestingView from './components/BacktestingView';
 import CopyTradingView from './components/CopyTradingView';
+import HistoryView from './components/HistoryView';
 
 // Modals for User/Auth
 import AccountModal from './components/AccountModal';
@@ -211,6 +210,10 @@ const App: React.FC = () => {
         setTrades(prev => prev.filter(t => t.id !== tradeId));
     }, []);
 
+    const deleteTrades = useCallback((tradeIds: string[]) => {
+        setTrades(prev => prev.filter(t => !tradeIds.includes(t.id)));
+    }, []);
+
     const setPriceAlert = useCallback((tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => {
         setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, priceAlert: priceAlert ? { ...priceAlert, triggered: false } : null } : t));
     }, []);
@@ -336,6 +339,12 @@ const App: React.FC = () => {
                         />;
             case 'alerts':
                 return <AlertsView alerts={alerts} onShowAlert={handleShowAlertDetails} />;
+            case 'history':
+                return <HistoryView 
+                            tradeHistory={tradeHistory} 
+                            onOpenJournal={setJournalingTrade}
+                            onDeleteTrades={deleteTrades}
+                        />;
             case 'copy-trading':
                 return <CopyTradingView 
                             isPremium={user.subscriptionTier === 'Premium'} 

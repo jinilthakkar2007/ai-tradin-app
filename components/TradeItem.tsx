@@ -15,6 +15,8 @@ interface TradeItemProps {
   onDeleteTrade?: (tradeId: string) => void;
   onSetPriceAlert?: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
   onOpenJournal?: (trade: Trade) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (tradeId: string) => void;
 }
 
 const detailsVariants: Variants = {
@@ -37,7 +39,7 @@ const DetailMetric: React.FC<{ label: string; value: string | React.ReactNode; c
 );
 
 
-const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal }) => {
+const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }) => {
   const { asset, direction, entryPrice, stopLoss, takeProfits, status, closePrice, riskPercentage, quantity, priceAlert, journal } = trade;
   const isLong = direction === 'LONG';
   
@@ -125,14 +127,31 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
   const hasActiveAlert = priceAlert && !priceAlert.triggered;
   const journalEntryCount = journal?.length || 0;
   
+  const SelectionCheckbox: React.FC = () => (
+    <div className="absolute top-4 left-4 z-20" onClick={(e) => e.stopPropagation()}>
+      <button 
+        onClick={() => onToggleSelect!(trade.id)}
+        className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors border-2 ${isSelected ? 'bg-brand border-brand' : 'bg-surface border-border hover:border-brand/50'}`}
+        aria-label={`Select trade ${trade.asset}`}
+      >
+        {isSelected && (
+          <motion.svg initial={{scale: 0.5}} animate={{scale: 1}} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </motion.svg>
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <motion.div 
-      className={`bg-surface rounded-xl border border-border hover:border-brand/50 transition-all duration-300 relative group overflow-hidden ${showTriggerGlow ? 'shadow-glow-yellow' : ''}`}
-      whileHover={{ y: -2 }}
+      className={`bg-surface rounded-xl border transition-all duration-300 relative group overflow-hidden ${isSelected ? 'border-brand shadow-glow-brand' : 'border-border hover:border-brand/50'} ${showTriggerGlow ? 'shadow-glow-yellow' : ''}`}
+      whileHover={{ y: isSelected ? 0 : -2 }}
       layout
     >
+        {isHistory && onToggleSelect && <SelectionCheckbox />}
         {/* Main Header */}
-        <div className="p-4 cursor-pointer" onClick={() => setIsDetailsVisible(!isDetailsVisible)}>
+        <div className={`p-4 cursor-pointer ${isHistory ? 'pl-12' : ''}`} onClick={() => setIsDetailsVisible(!isDetailsVisible)}>
             <div className="flex justify-between items-center gap-4">
                 {/* Left Side */}
                 <div className="flex items-center gap-3 flex-shrink-0">

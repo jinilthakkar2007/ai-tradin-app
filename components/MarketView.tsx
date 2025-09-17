@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketData, Trade, TradeDirection, UserSettings } from '../types';
@@ -92,13 +93,13 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
               placeholder="Search by symbol or name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-sm bg-background border border-background-light text-text-primary rounded-md py-2 pl-10 pr-4 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue transition-colors"
+              className="w-full max-w-sm bg-surface border border-border text-text-primary rounded-md py-2 pl-10 pr-4 focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
               aria-label="Search market data"
           />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left tabular-nums">
-          <thead className="text-xs text-text-secondary uppercase border-b border-background-light">
+          <thead className="text-xs text-text-secondary uppercase border-b border-border">
             <tr>
               <th scope="col" className="px-6 py-3">Asset</th>
               <th scope="col" className="px-6 py-3 text-right">Last Price</th>
@@ -122,7 +123,7 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
                 return (
                   <tr
                     key={asset.symbol}
-                    className={`border-b border-background-light transition-colors duration-300 cursor-pointer ${flashClass} ${isSelected ? 'bg-accent-blue/10' : 'hover:bg-background-light/50'}`}
+                    className={`border-b border-border transition-colors duration-300 cursor-pointer ${flashClass} ${isSelected ? 'bg-brand/10' : 'hover:bg-surface/50'}`}
                     onClick={() => handleRowClick(asset)}
                   >
                     <td className="px-6 py-4">

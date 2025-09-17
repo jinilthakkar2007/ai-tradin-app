@@ -1,7 +1,5 @@
 
-
-import React, { useState, useEffect, useCallback } from 'react';
-// FIX: Import Variants to correctly type the animation variants.
+import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Alert, Trade } from '../types';
 import { getAICommentary } from '../services/geminiService';
@@ -18,7 +16,6 @@ const backdropVariants = {
   hidden: { opacity: 0 },
 };
 
-// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
@@ -27,44 +24,51 @@ const modalVariants: Variants = {
 
 const AlertModal: React.FC<AlertModalProps> = ({ alert, onClose, trades, onCommentaryFetched }) => {
   const isSuccess = alert.type === 'success';
-  const [commentary, setCommentary] = useState(alert.aiCommentary);
+  const [commentary, setCommentary] = useState(alert.aiCommentary ?? 'Generating AI analysis...');
 
   useEffect(() => {
-    if (alert.aiCommentary === undefined && alert.tradeId !== 'system') {
-      const fetchCommentary = async () => {
-        setCommentary('Generating AI analysis...');
-        const relevantTrade = trades.find(t => t.id === alert.tradeId);
-        
-        if (relevantTrade) {
-          // Verify the trade is actually closed before requesting commentary
-          if (relevantTrade.status === 'ACTIVE' || !relevantTrade.closePrice || !relevantTrade.closeDate) {
-              const errorMessage = "AI commentary is only available for closed trades.";
-              setCommentary(errorMessage);
-              onCommentaryFetched(alert.id, errorMessage);
-              return;
-          }
-
-          try {
-            const newCommentary = await getAICommentary(relevantTrade);
-            setCommentary(newCommentary);
-            onCommentaryFetched(alert.id, newCommentary);
-          } catch (error) {
-            console.error("Failed to fetch AI commentary in modal:", error);
-            const errorMessage = "Could not generate AI analysis at this time.";
-            setCommentary(errorMessage);
-            onCommentaryFetched(alert.id, errorMessage);
-          }
-        } else {
-            const errorMessage = "Could not find associated trade to generate analysis.";
-            setCommentary(errorMessage);
-            onCommentaryFetched(alert.id, errorMessage);
-        }
-      };
-      fetchCommentary();
-    } else {
+    // If commentary already exists in the prop, ensure our state is synced and do nothing else.
+    if (alert.aiCommentary !== undefined) {
       setCommentary(alert.aiCommentary);
+      return;
     }
-  }, [alert, trades, onCommentaryFetched]);
+    
+    // Do not fetch for system alerts.
+    if (alert.tradeId === 'system') {
+        setCommentary('No commentary available for system alerts.');
+        return;
+    }
+
+    let isCancelled = false;
+
+    const fetchCommentary = async () => {
+      const relevantTrade = trades.find(t => t.id === alert.tradeId);
+      let newCommentary: string;
+
+      if (!relevantTrade) {
+        newCommentary = "Could not find associated trade to generate analysis.";
+      } else {
+        try {
+          // The service handles checking if the trade is closed.
+          newCommentary = await getAICommentary(relevantTrade);
+        } catch (error) {
+          console.error("Failed to fetch AI commentary in modal:", error);
+          newCommentary = "Could not generate AI analysis at this time.";
+        }
+      }
+
+      if (!isCancelled) {
+        setCommentary(newCommentary);
+        onCommentaryFetched(alert.id, newCommentary);
+      }
+    };
+
+    fetchCommentary();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [alert.id, alert.tradeId, alert.aiCommentary, trades, onCommentaryFetched]);
 
 
   return (

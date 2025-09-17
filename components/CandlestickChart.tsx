@@ -201,7 +201,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `${assetSymbol}_${activeTimeframe}_data.csv`);
+        link.setAttribute("download", `${assetSymbol.replace('/', '_')}_${activeTimeframe}_data.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -210,52 +210,52 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
   };
 
   const IndicatorButton: React.FC<{label: string, isActive: boolean, onClick: () => void}> = ({label, isActive, onClick}) => (
-       <button onClick={onClick} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${isActive ? 'bg-accent-blue text-white' : 'bg-background-surface hover:bg-background-light text-text-secondary'}`}>
+       <button onClick={onClick} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${isActive ? 'bg-brand text-white' : 'bg-surface hover:bg-border text-text-secondary'}`}>
            {label}
        </button>
   );
 
   return (
     <div 
-      className="bg-background-surface border border-background-light rounded-lg p-4 overflow-hidden"
+      className="bg-surface border border-border rounded-lg p-4 overflow-hidden"
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
         <h3 className="text-lg font-bold text-text-primary whitespace-nowrap">{assetSymbol} Historical Price</h3>
         <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center p-1 rounded-lg border border-background-light bg-background">
+            <div className="flex items-center p-1 rounded-lg border border-border bg-background">
                 <IndicatorButton label="MA" isActive={showMA} onClick={() => setShowMA(!showMA)} />
                 {showMA && (
                     <input 
                         type="number" 
                         value={maPeriod}
                         onChange={(e) => handlePeriodChange(setMaPeriod, e.target.value)}
-                        className="w-14 bg-background-surface text-text-primary text-center rounded p-1 ml-1 text-xs focus:ring-1 focus:ring-accent-blue focus:border-accent-blue"
+                        className="w-14 bg-surface text-text-primary text-center rounded p-1 ml-1 text-xs focus:ring-1 focus:ring-brand focus:border-brand"
                         aria-label="MA Period"
                         min="2"
                         max="200"
                     />
                 )}
             </div>
-            <div className="flex items-center p-1 rounded-lg border border-background-light bg-background">
+            <div className="flex items-center p-1 rounded-lg border border-border bg-background">
                 <IndicatorButton label="RSI" isActive={showRSI} onClick={() => setShowRSI(!showRSI)} />
                 {showRSI && (
                     <input 
                         type="number" 
                         value={rsiPeriod}
                         onChange={(e) => handlePeriodChange(setRsiPeriod, e.target.value)}
-                        className="w-14 bg-background-surface text-text-primary text-center rounded p-1 ml-1 text-xs focus:ring-1 focus:ring-accent-blue focus:border-accent-blue"
+                        className="w-14 bg-surface text-text-primary text-center rounded p-1 ml-1 text-xs focus:ring-1 focus:ring-brand focus:border-brand"
                         aria-label="RSI Period"
                         min="2"
                         max="200"
                     />
                 )}
             </div>
-            <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border border-background-light">
+            <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border border-border">
                 {timeframes.map(tf => (
                     <button
                         key={tf}
                         onClick={() => setActiveTimeframe(tf)}
-                        className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${activeTimeframe === tf ? 'bg-accent-blue text-white' : 'bg-background-surface hover:bg-background-light text-text-secondary'}`}
+                        className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${activeTimeframe === tf ? 'bg-brand text-white' : 'bg-surface hover:bg-border text-text-secondary'}`}
                     >
                         {tf}
                     </button>
@@ -263,7 +263,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
             </div>
             <button
                 onClick={handleExportData}
-                className="p-2.5 bg-background-surface text-text-secondary hover:bg-background-light hover:text-white rounded-lg border border-background-light transition-colors"
+                className="p-2.5 bg-surface text-text-secondary hover:bg-border hover:text-white rounded-lg border border-border transition-colors"
                 title="Export Chart Data as CSV"
                 aria-label="Export Chart Data"
             >

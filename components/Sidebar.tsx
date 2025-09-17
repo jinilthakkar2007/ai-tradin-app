@@ -12,6 +12,7 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import UserProfile from './UserProfile';
 import FlaskIcon from './icons/FlaskIcon';
 import CopyIcon from './icons/CopyIcon';
+import HistoryIcon from './icons/HistoryIcon';
 
 interface SidebarProps {
   activeView: View;
@@ -28,6 +29,7 @@ const navItems = [
     { view: 'portfolio' as const, icon: <PieChartIcon />, label: 'Portfolio', premium: false },
     { view: 'market' as const, icon: <MarketIcon />, label: 'Market', premium: false },
     { view: 'alerts' as const, icon: <BellIcon />, label: 'Alerts', premium: false },
+    { view: 'history' as const, icon: <HistoryIcon />, label: 'History', premium: false },
     { view: 'copy-trading' as const, icon: <CopyIcon />, label: 'Copy Trading', premium: true },
     { view: 'chatbot' as const, icon: <ChatIcon />, label: 'AI Chatbot', premium: true },
     { view: 'strategy' as const, icon: <BrainCircuitIcon />, label: 'Strategy AI', premium: true },

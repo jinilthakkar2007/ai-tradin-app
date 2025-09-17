@@ -30,7 +30,7 @@ const TradeIdeas: React.FC<TradeIdeasProps> = ({ ideas, onQuickTrade }) => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, x: -20, scale: 0.95 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="p-3 hover:bg-background-light/50 rounded-lg"
+                        className="p-3 hover:bg-border/50 rounded-lg"
                     >
                         <div className="flex items-start gap-3">
                             <div className={`flex-shrink-0 mt-1 rounded-full p-1.5 ${idea.direction === 'LONG' ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}`}>
