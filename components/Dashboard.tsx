@@ -1,9 +1,10 @@
 
 
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trade, PriceAlert, UserStats, TradeDirection } from '../types';
+import { Trade, PriceAlert, UserStats, TradeDirection, Prices } from '../types';
 import TradeList from './TradeList';
 import PerformanceChart from './PerformanceChart';
 import MarketNews from './MarketNews';
@@ -16,6 +17,7 @@ import TradeIdeas from './TradeIdeas';
 interface DashboardProps {
   stats: UserStats;
   trades: Trade[];
+  prices: Prices;
   onNewTrade: () => void;
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
@@ -24,7 +26,7 @@ interface DashboardProps {
   onQuickTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, trades, onNewTrade, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onQuickTrade }) => {
+const Dashboard: React.FC<DashboardProps> = ({ stats, trades, prices, onNewTrade, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onQuickTrade }) => {
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [tradeIdeas, setTradeIdeas] = useState<TradeIdea[]>([]);
   const MAX_IDEAS = 4;
@@ -97,7 +99,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, trades, onNewTrade, onEdit
                         {activeTab === 'active' ? (
                             <TradeList
                                 trades={activeTrades}
-                                prices={{}}
+                                prices={prices}
                                 isHistory={false}
                                 onEditTrade={onEditTrade}
                                 onDeleteTrade={onDeleteTrade}

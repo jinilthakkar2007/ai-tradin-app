@@ -134,7 +134,7 @@ const App: React.FC = () => {
         }));
     }, [createAlert]);
 
-    useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
+    const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
 
     const addTrade = useCallback((tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
         const newTrade: Trade = {
@@ -330,6 +330,7 @@ const App: React.FC = () => {
                 return <Dashboard 
                             stats={userStats} 
                             trades={trades} 
+                            prices={prices}
                             onNewTrade={() => setIsNewTradeFormVisible(true)}
                             onEditTrade={setEditingTrade}
                             onDeleteTrade={deleteTrade}
@@ -368,6 +369,7 @@ const App: React.FC = () => {
                 return <Dashboard 
                             stats={userStats} 
                             trades={trades} 
+                            prices={prices}
                             onNewTrade={() => setIsNewTradeFormVisible(true)}
                             onEditTrade={setEditingTrade}
                             onDeleteTrade={deleteTrade}

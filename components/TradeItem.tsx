@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Trade, PriceAlert } from '../types';
 import EditIcon from './icons/EditIcon';
@@ -65,13 +65,21 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
 
   // Derived values for display
   const displayPrice = isHistory ? (closePrice ?? entryPrice) : (currentPrice ?? entryPrice);
-  const profitLoss = (displayPrice - entryPrice) * quantity * (isLong ? 1 : -1);
-  const initialPositionValue = entryPrice * quantity;
-  const profitLossPercentage = initialPositionValue > 0 ? (profitLoss / initialPositionValue) * 100 : 0;
   
-  const pnlColor = profitLoss >= 0 ? 'text-accent-green' : 'text-accent-red';
-  const pnlBgColor = profitLoss >= 0 ? 'bg-accent-green' : 'bg-accent-red';
-
+  const { profitLoss, profitLossPercentage, pnlColor, pnlBgColor } = useMemo(() => {
+    const pl = (displayPrice - entryPrice) * quantity * (isLong ? 1 : -1);
+    const initialPositionValue = entryPrice * quantity;
+    const plPercentage = initialPositionValue > 0 ? (pl / initialPositionValue) * 100 : 0;
+    const color = pl >= 0 ? 'text-accent-green' : 'text-accent-red';
+    const bgColor = pl >= 0 ? 'bg-accent-green' : 'bg-accent-red';
+    return { 
+        profitLoss: pl, 
+        profitLossPercentage: plPercentage, 
+        pnlColor: color,
+        pnlBgColor: bgColor
+    };
+  }, [displayPrice, entryPrice, quantity, isLong]);
+  
   const finalTpPrice = React.useMemo(() => {
     if (!takeProfits || takeProfits.length === 0) return entryPrice;
     const tpPrices = takeProfits.map(tp => tp.price);
@@ -92,6 +100,8 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
   const rewardAmount = rewardPerUnit * quantity;
   const positionValue = displayPrice * quantity;
 
+  const hasActiveAlert = priceAlert && !priceAlert.triggered;
+  const journalEntryCount = journal?.length || 0;
 
   const getStatusBadge = () => {
     switch(status) {
@@ -124,9 +134,6 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
       }
   };
 
-  const hasActiveAlert = priceAlert && !priceAlert.triggered;
-  const journalEntryCount = journal?.length || 0;
-  
   const SelectionCheckbox: React.FC = () => (
     <div className="absolute top-4 left-4 z-20" onClick={(e) => e.stopPropagation()}>
       <button 
@@ -162,7 +169,14 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
                                 {direction}
                             </span>
                         </div>
-                        <div className="mt-1 flex items-center gap-3">{getStatusBadge()}</div>
+                        <div className="mt-1 flex items-center gap-3">
+                            {getStatusBadge()}
+                            {!isHistory && hasActiveAlert && (
+                                <span className="text-accent-yellow" title={`Alert active: ${priceAlert.condition} $${priceAlert.price.toLocaleString()}`}>
+                                    <BellIcon className="h-4 w-4" />
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

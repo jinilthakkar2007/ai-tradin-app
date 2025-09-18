@@ -1,4 +1,6 @@
 import React from 'react';
+// FIX: Replace incorrect 'require' with a standard ES module import for framer-motion.
+import { motion } from 'framer-motion';
 
 interface CheckboxIconProps {
   state: 'checked' | 'unchecked' | 'indeterminate';
@@ -38,8 +40,5 @@ const CheckboxIcon: React.FC<CheckboxIconProps> = ({ state }) => {
     </svg>
   );
 };
-
-// Add motion to make it available in the component without extra imports
-const motion = require('framer-motion').motion;
 
 export default CheckboxIcon;
