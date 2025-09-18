@@ -1,10 +1,7 @@
-
-
-
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trade, PriceAlert, UserStats, TradeDirection, Prices } from '../types';
+import { Trade, PriceAlert, UserStats, TradeDirection } from '../types';
+import { useTradeMonitor } from '../hooks/useTradeMonitor';
 import TradeList from './TradeList';
 import PerformanceChart from './PerformanceChart';
 import MarketNews from './MarketNews';
@@ -12,23 +9,36 @@ import StatCard from './StatCard';
 import { PlusIcon, CheckCircleIcon, XCircleIcon, ScaleIcon } from './icons/StatIcons';
 import { tradeIdeaService, TradeIdea } from '../services/tradeIdeaService';
 import TradeIdeas from './TradeIdeas';
+import TradeFilters, { Filters } from './TradeFilters';
 
 
 interface DashboardProps {
   stats: UserStats;
   trades: Trade[];
-  prices: Prices;
   onNewTrade: () => void;
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
   onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
   onOpenJournal: (trade: Trade) => void;
   onQuickTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
+  handleTradeTrigger: (trade: Trade, status: 'CLOSED_TP' | 'CLOSED_SL', price: number) => void;
+  handleCustomAlert: (trade: Trade) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ stats, trades, prices, onNewTrade, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onQuickTrade }) => {
-  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+const Dashboard: React.FC<DashboardProps> = ({ 
+    stats, 
+    trades, 
+    onNewTrade, 
+    onEditTrade, 
+    onDeleteTrade, 
+    onSetPriceAlert, 
+    onOpenJournal, 
+    onQuickTrade,
+    handleTradeTrigger,
+    handleCustomAlert
+}) => {
   const [tradeIdeas, setTradeIdeas] = useState<TradeIdea[]>([]);
+  const [filters, setFilters] = useState<Filters>({ status: 'ACTIVE', direction: 'ALL', asset: 'ALL' });
   const MAX_IDEAS = 4;
 
   useEffect(() => {
@@ -44,10 +54,20 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, trades, prices, onNewTrade
   const activeTrades = useMemo(() => trades.filter(t => t.status === 'ACTIVE'), [trades]);
   const tradeHistory = useMemo(() => trades.filter(t => t.status !== 'ACTIVE').sort((a, b) => new Date(b.closeDate!).getTime() - new Date(a.closeDate!).getTime()), [trades]);
 
-  const TABS = [
-    { id: 'active', label: `Active Trades (${activeTrades.length})` },
-    { id: 'history', label: 'Trade History' },
-  ];
+  const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
+
+  const filteredTrades = useMemo(() => {
+    const statusFilter = (trade: Trade) => {
+      if (filters.status === 'ALL') return true;
+      return trade.status === filters.status;
+    };
+    return trades
+      .filter(statusFilter)
+      .filter(trade => filters.direction === 'ALL' || trade.direction === filters.direction)
+      .filter(trade => filters.asset === 'ALL' || trade.asset === filters.asset)
+      .sort((a, b) => new Date(b.openDate).getTime() - new Date(a.openDate).getTime());
+  }, [trades, filters]);
+
 
   return (
     <div className="space-y-8">
@@ -81,39 +101,18 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, trades, prices, onNewTrade
             <div className="lg:col-span-2 space-y-6">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}>
                     <div className="bg-surface border border-border rounded-lg p-4 sm:p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold">Trades</h2>
-                            <div className="flex items-center space-x-2 bg-background p-1 rounded-lg border border-border">
-                                {TABS.map(tab => (
-                                    <motion.button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id as 'active' | 'history')}
-                                        className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200 ${activeTab === tab.id ? 'bg-brand text-white' : 'bg-surface hover:bg-border text-text-secondary'}`}
-                                        whileTap={{ scale: 0.95 }}
-                                    >
-                                        {tab.label}
-                                    </motion.button>
-                                ))}
-                            </div>
-                        </div>
-                        {activeTab === 'active' ? (
+                        <h2 className="text-xl font-semibold mb-4">Trades</h2>
+                        <TradeFilters trades={trades} filters={filters} onFilterChange={setFilters} />
+                        <div className="mt-4">
                             <TradeList
-                                trades={activeTrades}
+                                trades={filteredTrades}
                                 prices={prices}
-                                isHistory={false}
                                 onEditTrade={onEditTrade}
                                 onDeleteTrade={onDeleteTrade}
                                 onSetPriceAlert={onSetPriceAlert}
                                 onOpenJournal={onOpenJournal}
                             />
-                        ) : (
-                            <TradeList
-                                trades={tradeHistory}
-                                prices={{}}
-                                isHistory={true}
-                                onOpenJournal={onOpenJournal}
-                            />
-                        )}
+                        </div>
                     </div>
                 </motion.div>
                 

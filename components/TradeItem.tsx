@@ -6,11 +6,11 @@ import TrashIcon from './icons/TrashIcon';
 import BellIcon from './icons/BellIcon';
 import JournalIcon from './icons/JournalIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import TradeDetails from './TradeDetails';
 
 interface TradeItemProps {
   trade: Trade;
   currentPrice?: number;
-  isHistory: boolean;
   onEditTrade?: (trade: Trade) => void;
   onDeleteTrade?: (tradeId: string) => void;
   onSetPriceAlert?: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
@@ -31,17 +31,10 @@ const alertFormVariants: Variants = {
   exit: { opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
-const DetailMetric: React.FC<{ label: string; value: string | React.ReactNode; className?: string; tooltip?: string }> = ({ label, value, className, tooltip }) => (
-    <div title={tooltip}>
-        <p className="text-xs text-text-secondary">{label}</p>
-        <p className={`text-sm font-semibold text-text-primary tabular-nums ${className}`}>{value}</p>
-    </div>
-);
-
-
-const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }) => {
-  const { asset, direction, entryPrice, stopLoss, takeProfits, status, closePrice, riskPercentage, quantity, priceAlert, journal } = trade;
+const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }) => {
+  const { asset, direction, entryPrice, stopLoss, takeProfits, status, closePrice, priceAlert, journal } = trade;
   const isLong = direction === 'LONG';
+  const isHistory = status !== 'ACTIVE';
   
   // Component State
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
@@ -67,8 +60,8 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
   const displayPrice = isHistory ? (closePrice ?? entryPrice) : (currentPrice ?? entryPrice);
   
   const { profitLoss, profitLossPercentage, pnlColor, pnlBgColor } = useMemo(() => {
-    const pl = (displayPrice - entryPrice) * quantity * (isLong ? 1 : -1);
-    const initialPositionValue = entryPrice * quantity;
+    const pl = (displayPrice - entryPrice) * trade.quantity * (isLong ? 1 : -1);
+    const initialPositionValue = entryPrice * trade.quantity;
     const plPercentage = initialPositionValue > 0 ? (pl / initialPositionValue) * 100 : 0;
     const color = pl >= 0 ? 'text-accent-green' : 'text-accent-red';
     const bgColor = pl >= 0 ? 'bg-accent-green' : 'bg-accent-red';
@@ -78,7 +71,7 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
         pnlColor: color,
         pnlBgColor: bgColor
     };
-  }, [displayPrice, entryPrice, quantity, isLong]);
+  }, [displayPrice, entryPrice, trade.quantity, isLong]);
   
   const finalTpPrice = React.useMemo(() => {
     if (!takeProfits || takeProfits.length === 0) return entryPrice;
@@ -90,16 +83,6 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
   const currentProgress = Math.abs((displayPrice ?? entryPrice) - stopLoss);
   let progressPercentage = totalRange > 0 ? Math.min(100, (currentProgress / totalRange) * 100) : 0;
   
-  const riskPerUnit = Math.abs(entryPrice - stopLoss);
-  const rewardPerUnit = Math.abs(finalTpPrice - entryPrice);
-  const riskRewardRatio = riskPerUnit > 0 ? rewardPerUnit / riskPerUnit : 0;
-  const rrColor = riskRewardRatio >= 2 ? 'text-accent-green' : riskRewardRatio >= 1 ? 'text-accent-yellow' : 'text-accent-red';
-  
-  // New detailed metrics
-  const riskAmount = riskPerUnit * quantity;
-  const rewardAmount = rewardPerUnit * quantity;
-  const positionValue = displayPrice * quantity;
-
   const hasActiveAlert = priceAlert && !priceAlert.triggered;
   const journalEntryCount = journal?.length || 0;
 
@@ -249,22 +232,7 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, isHistory, o
                     exit="exit"
                     className="overflow-hidden"
                 >
-                    <div className="pb-4 px-4 border-t border-border">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                           <DetailMetric label="Entry Price" value={`$${entryPrice.toLocaleString()}`} />
-                           <DetailMetric label={isHistory ? 'Closed Price' : 'Current Price'} value={`$${displayPrice.toLocaleString()}`} />
-                           <DetailMetric label="Stop Loss" value={`$${stopLoss.toLocaleString()}`} />
-                           <DetailMetric label="Take Profit" value={`$${finalTpPrice.toLocaleString()}`} />
-
-                           <DetailMetric label="Position Size" value={quantity.toLocaleString()} />
-                           <DetailMetric label="Position Value" value={`$${positionValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} />
-                           <DetailMetric label="Risk %" value={`${riskPercentage.toFixed(2)}%`} tooltip="Percentage of position value at risk" />
-                           <DetailMetric label="R:R Ratio" value={`${riskRewardRatio.toFixed(2)} : 1`} className={rrColor} />
-                           
-                           <DetailMetric label="Risk Amount" value={`$${riskAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} className="text-accent-red" tooltip="Potential loss if SL is hit" />
-                           <DetailMetric label="Reward Amount" value={`$${rewardAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} className="text-accent-green" tooltip="Potential profit if TP is hit" />
-                        </div>
-                    </div>
+                    <TradeDetails trade={trade} currentPrice={currentPrice} />
                 </motion.div>
             )}
         </AnimatePresence>

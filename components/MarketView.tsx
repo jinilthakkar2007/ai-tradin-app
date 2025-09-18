@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MarketData, Trade, TradeDirection, UserSettings } from '../types';
@@ -17,19 +16,41 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFlashes, setPriceFlashes] = useState<Record<string, 'up' | 'down'>>({});
-  const [selectedAsset, setSelectedAsset] = useState<MarketData | null>(null);
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | null>(null);
   const prevMarketDataRef = useRef<MarketData[]>([]);
 
   const activeSymbols = useMemo(() => new Set(activeTrades.map(t => t.asset)), [activeTrades]);
+  
+  const selectedAsset = useMemo(() => {
+    if (!selectedAssetSymbol) return null;
+    // Find the latest asset data from marketData
+    return marketData.find(d => d.symbol === selectedAssetSymbol) || null;
+  }, [marketData, selectedAssetSymbol]);
 
   useEffect(() => {
-    setMarketData(tradingViewService.getMarketData()); // Initial fetch
-    
-    const interval = setInterval(() => {
-      setMarketData(tradingViewService.getMarketData());
-    }, 2000); // Refresh every 2 seconds to match service
+    const initialData = tradingViewService.getMarketData();
+    setMarketData(initialData);
 
-    return () => clearInterval(interval);
+    const handleUpdate = (updatedAsset: MarketData) => {
+        setMarketData(currentData => 
+            currentData.map(asset => 
+                asset.symbol === updatedAsset.symbol ? updatedAsset : asset
+            )
+        );
+    };
+
+    const subscriptions: { symbol: string; handler: (asset: MarketData) => void }[] = [];
+    initialData.forEach(asset => {
+        const handler = (updatedAsset: MarketData) => handleUpdate(updatedAsset);
+        tradingViewService.subscribe(asset.symbol, handler);
+        subscriptions.push({ symbol: asset.symbol, handler });
+    });
+
+    return () => {
+        subscriptions.forEach(({ symbol, handler }) => {
+            tradingViewService.unsubscribe(symbol, handler);
+        });
+    };
   }, []);
 
   useEffect(() => {
@@ -53,16 +74,6 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
       prevMarketDataRef.current = marketData;
   }, [marketData]);
 
-  // When market data updates, also update the selectedAsset object to get the latest price
-  useEffect(() => {
-    if (selectedAsset) {
-      const updatedAsset = marketData.find(d => d.symbol === selectedAsset.symbol);
-      if (updatedAsset) {
-        setSelectedAsset(updatedAsset);
-      }
-    }
-  }, [marketData, selectedAsset]);
-
   const filteredMarketData = useMemo(() => {
     if (!searchTerm) {
         return marketData;
@@ -75,10 +86,10 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
   }, [marketData, searchTerm]);
   
   const handleRowClick = (asset: MarketData) => {
-    if (selectedAsset?.symbol === asset.symbol) {
-      setSelectedAsset(null); // Toggle off if clicking the same asset
+    if (selectedAssetSymbol === asset.symbol) {
+      setSelectedAssetSymbol(null); // Toggle off if clicking the same asset
     } else {
-      setSelectedAsset(asset);
+      setSelectedAssetSymbol(asset.symbol);
     }
   };
 
@@ -118,7 +129,7 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
                 
                 const flash = priceFlashes[asset.symbol];
                 const flashClass = flash === 'up' ? 'bg-accent-green/10' : flash === 'down' ? 'bg-accent-red/10' : '';
-                const isSelected = selectedAsset?.symbol === asset.symbol;
+                const isSelected = selectedAssetSymbol === asset.symbol;
 
                 return (
                   <tr

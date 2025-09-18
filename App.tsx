@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader } from './types';
-import { useTradeMonitor } from './hooks/useTradeMonitor';
 import { useAuth } from './hooks/useAuth';
 
 // Components
@@ -133,8 +133,6 @@ const App: React.FC = () => {
             return t;
         }));
     }, [createAlert]);
-
-    const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
 
     const addTrade = useCallback((tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
         const newTrade: Trade = {
@@ -324,60 +322,12 @@ const App: React.FC = () => {
         setQuickTradeData(prefillData);
     };
 
-    const renderView = () => {
-        switch (view) {
-            case 'dashboard':
-                return <Dashboard 
-                            stats={userStats} 
-                            trades={trades} 
-                            prices={prices}
-                            onNewTrade={() => setIsNewTradeFormVisible(true)}
-                            onEditTrade={setEditingTrade}
-                            onDeleteTrade={deleteTrade}
-                            onSetPriceAlert={setPriceAlert}
-                            onOpenJournal={setJournalingTrade}
-                            onQuickTrade={handleQuickTrade}
-                        />;
-            case 'alerts':
-                return <AlertsView alerts={alerts} onShowAlert={handleShowAlertDetails} />;
-            case 'history':
-                return <HistoryView 
-                            tradeHistory={tradeHistory} 
-                            onOpenJournal={setJournalingTrade}
-                            onDeleteTrades={deleteTrades}
-                        />;
-            case 'copy-trading':
-                return <CopyTradingView 
-                            isPremium={user.subscriptionTier === 'Premium'} 
-                            onUpgradeClick={() => setIsUpgradeModalVisible(true)}
-                            copiedTraders={copiedTraders}
-                            onToggleCopy={handleToggleCopyTrader}
-                        />;
-            case 'chatbot':
-                return user.subscriptionTier === 'Premium' ? 
-                       <TradeChatbot onAddTrade={addTrade} /> : 
-                       <StrategyBuilder isPremium={false} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />; // Placeholder for non-premium
-            case 'market':
-                return <MarketView activeTrades={activeTrades} onNewTrade={handleQuickTrade} userSettings={userSettings} />;
-            case 'portfolio':
-                return <PortfolioView stats={userStats} activeTrades={activeTrades} tradeHistory={tradeHistory} />;
-            case 'strategy':
-                return <StrategyBuilder isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
-            case 'backtesting':
-                 return <BacktestingView isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
-            default:
-                return <Dashboard 
-                            stats={userStats} 
-                            trades={trades} 
-                            prices={prices}
-                            onNewTrade={() => setIsNewTradeFormVisible(true)}
-                            onEditTrade={setEditingTrade}
-                            onDeleteTrade={deleteTrade}
-                            onSetPriceAlert={setPriceAlert}
-                            onOpenJournal={setJournalingTrade}
-                            onQuickTrade={handleQuickTrade}
-                        />;
-        }
+    const motionProps = {
+      initial: { opacity: 0, y: 15 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -15 },
+      transition: { duration: 0.25 },
+      className: "w-full h-full"
     };
 
     return (
@@ -393,16 +343,73 @@ const App: React.FC = () => {
             />
             <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto">
                 <AnimatePresence mode="wait">
-                    <motion.div
-                        key={view}
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -15 }}
-                        transition={{ duration: 0.25 }}
-                        className="w-full h-full"
-                    >
-                        {renderView()}
-                    </motion.div>
+                    {view === 'dashboard' && (
+                        <motion.div key="dashboard" {...motionProps}>
+                            <Dashboard 
+                                stats={userStats} 
+                                trades={trades} 
+                                onNewTrade={() => setIsNewTradeFormVisible(true)}
+                                onEditTrade={setEditingTrade}
+                                onDeleteTrade={deleteTrade}
+                                onSetPriceAlert={setPriceAlert}
+                                onOpenJournal={setJournalingTrade}
+                                onQuickTrade={handleQuickTrade}
+                                handleTradeTrigger={handleTradeTrigger}
+                                handleCustomAlert={handleCustomAlert}
+                            />
+                        </motion.div>
+                    )}
+                    {view === 'alerts' && (
+                         <motion.div key="alerts" {...motionProps}>
+                            <AlertsView alerts={alerts} onShowAlert={handleShowAlertDetails} />
+                        </motion.div>
+                    )}
+                    {view === 'history' && (
+                        <motion.div key="history" {...motionProps}>
+                            <HistoryView 
+                                tradeHistory={tradeHistory} 
+                                onOpenJournal={setJournalingTrade}
+                                onDeleteTrades={deleteTrades}
+                            />
+                        </motion.div>
+                    )}
+                    {view === 'copy-trading' && (
+                        <motion.div key="copy-trading" {...motionProps}>
+                            <CopyTradingView 
+                                isPremium={user.subscriptionTier === 'Premium'} 
+                                onUpgradeClick={() => setIsUpgradeModalVisible(true)}
+                                copiedTraders={copiedTraders}
+                                onToggleCopy={handleToggleCopyTrader}
+                            />
+                        </motion.div>
+                    )}
+                    {view === 'chatbot' && (
+                        <motion.div key="chatbot" {...motionProps}>
+                            {user.subscriptionTier === 'Premium' ? 
+                                <TradeChatbot onAddTrade={addTrade} /> : 
+                                <StrategyBuilder isPremium={false} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />}
+                        </motion.div>
+                    )}
+                    {view === 'market' && (
+                        <motion.div key="market" {...motionProps}>
+                            <MarketView activeTrades={activeTrades} onNewTrade={handleQuickTrade} userSettings={userSettings} />
+                        </motion.div>
+                    )}
+                    {view === 'portfolio' && (
+                        <motion.div key="portfolio" {...motionProps}>
+                            <PortfolioView stats={userStats} activeTrades={activeTrades} tradeHistory={tradeHistory} />
+                        </motion.div>
+                    )}
+                    {view === 'strategy' && (
+                        <motion.div key="strategy" {...motionProps}>
+                            <StrategyBuilder isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />
+                        </motion.div>
+                    )}
+                    {view === 'backtesting' && (
+                        <motion.div key="backtesting" {...motionProps}>
+                            <BacktestingView isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />
+                        </motion.div>
+                    )}
                 </AnimatePresence>
             </main>
 

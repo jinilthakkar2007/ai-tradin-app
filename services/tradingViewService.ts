@@ -1,15 +1,14 @@
 import { MOCK_MARKET_DATA as initialMarketData } from '../constants';
 import { MarketData } from '../types';
 
-type PriceListener = (price: number) => void;
+type UpdateListener = (updatedAsset: MarketData) => void;
 
 class TradingViewService {
   private marketData: MarketData[];
-  private listeners: Map<string, Set<PriceListener>> = new Map();
+  private listeners: Map<string, Set<UpdateListener>> = new Map();
   // Replaced polling interval with a timeout-based loop for a simulated WebSocket stream
   private simulationTimeoutId: number | null = null;
 
-  // FIX: Updated constructor to accept MarketData[] as initialData now includes high24h and low24h.
   constructor(initialData: MarketData[]) {
     // The initial data now contains high24h and low24h, so we can use it directly.
     this.marketData = initialData;
@@ -61,7 +60,7 @@ class TradingViewService {
       };
       
       // Notify listeners for this specific asset, mimicking a push update
-      this.listeners.get(symbolToUpdate)?.forEach(callback => callback(newPrice));
+      this.listeners.get(symbolToUpdate)?.forEach(callback => callback(this.marketData[assetIndex]));
     }
     
     // Schedule the next update to create a continuous stream
@@ -69,7 +68,7 @@ class TradingViewService {
     this.simulationTimeoutId = window.setTimeout(() => this.runWebSocketSimulation(), randomDelay);
   }
 
-  public subscribe(symbol: string, callback: PriceListener): void {
+  public subscribe(symbol: string, callback: UpdateListener): void {
     if (!this.listeners.has(symbol)) {
       this.listeners.set(symbol, new Set());
     }
@@ -82,7 +81,7 @@ class TradingViewService {
     }
   }
 
-  public unsubscribe(symbol: string, callback: PriceListener): void {
+  public unsubscribe(symbol: string, callback: UpdateListener): void {
     const symbolListeners = this.listeners.get(symbol);
     if (symbolListeners) {
       symbolListeners.delete(callback);

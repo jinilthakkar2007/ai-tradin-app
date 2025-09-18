@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trade, TradeStatus, Prices } from '../types';
+import { Trade, TradeStatus, Prices, MarketData } from '../types';
 import { tradingViewService } from '../services/tradingViewService';
 
 export const useTradeMonitor = (
@@ -76,7 +76,8 @@ export const useTradeMonitor = (
     // real-time price updates. This hook subscribes to the assets from the active
     // trades list to receive those updates.
     const handlers = activeTrades.map(trade => {
-      const handler = (newPrice: number) => {
+      const handler = (updatedAsset: MarketData) => {
+        const newPrice = updatedAsset.price;
         setPrices(prev => ({ ...prev, [trade.asset]: newPrice }));
         checkTrade(trade, newPrice);
       };

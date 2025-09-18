@@ -73,7 +73,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ tradeHistory, onOpenJournal, 
         <TradeList
           trades={tradeHistory}
           prices={{}} // No live prices needed for history
-          isHistory={true}
+          // FIX: Removed unsupported 'isHistory' prop. The TradeItem component correctly determines
+          // if a trade is historical based on its 'status' property.
           onOpenJournal={onOpenJournal}
           selectedTradeIds={selectedTradeIds}
           onToggleSelect={handleToggleSelect}

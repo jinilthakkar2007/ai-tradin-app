@@ -8,7 +8,6 @@ import ChartIcon from './icons/ChartIcon';
 interface TradeListProps {
   trades: Trade[];
   prices: Prices;
-  isHistory: boolean;
   onEditTrade?: (trade: Trade) => void;
   onDeleteTrade?: (tradeId: string) => void;
   onSetPriceAlert?: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
@@ -49,15 +48,15 @@ const itemVariants: Variants = {
   }
 };
 
-const TradeList: React.FC<TradeListProps> = ({ trades, prices, isHistory, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onToggleSelect, selectedTradeIds }) => {
+const TradeList: React.FC<TradeListProps> = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onToggleSelect, selectedTradeIds }) => {
   if (trades.length === 0) {
     return (
       <div className="text-center py-16 px-6 bg-surface border-2 border-dashed border-border rounded-xl">
         <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-brand/10 text-brand">
             <ChartIcon />
         </div>
-        <h3 className="mt-4 text-lg font-semibold text-text-primary">{isHistory ? 'No Closed Trades Yet' : 'No Active Trades'}</h3>
-        <p className="mt-2 text-text-secondary">{isHistory ? 'Your completed trades will appear here.' : 'Add a new trade to start monitoring.'}</p>
+        <h3 className="mt-4 text-lg font-semibold text-text-primary">No Trades Found</h3>
+        <p className="mt-2 text-text-secondary">No trades match the current filters. Try adjusting your filters or adding a new trade.</p>
       </div>
     );
   }
@@ -74,8 +73,7 @@ const TradeList: React.FC<TradeListProps> = ({ trades, prices, isHistory, onEdit
         <motion.div key={trade.id} variants={itemVariants} layout exit="exit">
           <TradeItem
             trade={trade}
-            currentPrice={isHistory ? undefined : prices[trade.asset]}
-            isHistory={isHistory}
+            currentPrice={prices[trade.asset]}
             onEditTrade={onEditTrade}
             onDeleteTrade={onDeleteTrade}
             onSetPriceAlert={onSetPriceAlert}
