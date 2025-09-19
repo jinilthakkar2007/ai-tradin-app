@@ -16,6 +16,14 @@ export interface PriceAlert {
     triggered: boolean;
 }
 
+export interface GlobalPriceAlert {
+  id: string;
+  asset: string;
+  price: number;
+  condition: AlertCondition;
+  createdAt: string;
+}
+
 export interface JournalEntry {
     timestamp: string;
     note: string;
