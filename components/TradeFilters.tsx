@@ -34,21 +34,49 @@ const FilterButton: React.FC<{
 
 const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterChange }) => {
 
-  const counts = useMemo(() => {
-    const statusCounts: Record<TradeStatus | 'ALL', number> = { ALL: trades.length, ACTIVE: 0, CLOSED_TP: 0, CLOSED_SL: 0 };
-    const directionCounts: Record<TradeDirection | 'ALL', number> = { ALL: trades.length, LONG: 0, SHORT: 0 };
-    const assetCounts: Record<string, number> = { ALL: trades.length };
-    const availableAssets = new Set<string>();
+  const { statusCounts, directionCounts, assetCounts, availableAssets } = useMemo(() => {
+    // Helper filter functions based on current filter state
+    const filterByStatus = (trade: Trade) => filters.status === 'ALL' || trade.status === filters.status;
+    const filterByDirection = (trade: Trade) => filters.direction === 'ALL' || trade.direction === filters.direction;
+    const filterByAsset = (trade: Trade) => filters.asset === 'ALL' || trade.asset === filters.asset;
 
-    trades.forEach(trade => {
-      statusCounts[trade.status]++;
-      directionCounts[trade.direction]++;
-      assetCounts[trade.asset] = (assetCounts[trade.asset] || 0) + 1;
-      availableAssets.add(trade.asset);
+    // --- Status Counts ---
+    // Count statuses based on trades filtered by direction and asset
+    const tradesForStatusCount = trades.filter(filterByDirection).filter(filterByAsset);
+    const statusCounts: Record<TradeStatus | 'ALL', number> = {
+      ALL: tradesForStatusCount.length,
+      ACTIVE: tradesForStatusCount.filter(t => t.status === 'ACTIVE').length,
+      CLOSED_TP: tradesForStatusCount.filter(t => t.status === 'CLOSED_TP').length,
+      CLOSED_SL: tradesForStatusCount.filter(t => t.status === 'CLOSED_SL').length,
+    };
+
+    // --- Direction Counts ---
+    // Count directions based on trades filtered by status and asset
+    const tradesForDirectionCount = trades.filter(filterByStatus).filter(filterByAsset);
+    const directionCounts: Record<TradeDirection | 'ALL', number> = {
+      ALL: tradesForDirectionCount.length,
+      LONG: tradesForDirectionCount.filter(t => t.direction === 'LONG').length,
+      SHORT: tradesForDirectionCount.filter(t => t.direction === 'SHORT').length,
+    };
+    
+    // --- Asset Counts ---
+    // Get all unique assets from the original unfiltered list to populate the dropdown
+    const allAvailableAssets = Array.from(new Set(trades.map(t => t.asset))).sort();
+    
+    // Count assets based on trades filtered by status and direction
+    const tradesForAssetCount = trades.filter(filterByStatus).filter(filterByDirection);
+    const assetCounts: Record<string, number> = { ALL: tradesForAssetCount.length };
+    allAvailableAssets.forEach(asset => {
+        assetCounts[asset] = tradesForAssetCount.filter(t => t.asset === asset).length;
     });
 
-    return { statusCounts, directionCounts, assetCounts, availableAssets: Array.from(availableAssets).sort() };
-  }, [trades]);
+    return { 
+        statusCounts, 
+        directionCounts, 
+        assetCounts, 
+        availableAssets: allAvailableAssets
+    };
+  }, [trades, filters]);
 
   const handleFilterChange = (key: keyof Filters, value: Filters[keyof Filters]) => {
     onFilterChange({ ...filters, [key]: value });
@@ -75,7 +103,7 @@ const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterCh
           <FilterButton 
             key={opt.value}
             label={opt.label}
-            count={counts.statusCounts[opt.value]}
+            count={statusCounts[opt.value]}
             isActive={filters.status === opt.value}
             onClick={() => handleFilterChange('status', opt.value)}
           />
@@ -87,7 +115,7 @@ const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterCh
           <FilterButton
             key={opt.value}
             label={opt.label}
-            count={counts.directionCounts[opt.value]}
+            count={directionCounts[opt.value]}
             isActive={filters.direction === opt.value}
             onClick={() => handleFilterChange('direction', opt.value)}
           />
@@ -100,9 +128,9 @@ const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterCh
             onChange={e => handleFilterChange('asset', e.target.value)} 
             className="bg-background border border-border text-text-primary rounded-lg p-2.5 focus:ring-2 focus:ring-brand focus:border-brand text-sm font-semibold"
         >
-            <option value="ALL">All Assets ({counts.assetCounts.ALL})</option>
-            {counts.availableAssets.map(asset => (
-                <option key={asset} value={asset}>{asset} ({counts.assetCounts[asset] || 0})</option>
+            <option value="ALL">All Assets ({assetCounts.ALL})</option>
+            {availableAssets.map(asset => (
+                <option key={asset} value={asset}>{asset} ({assetCounts[asset] || 0})</option>
             ))}
         </select>
        </div>

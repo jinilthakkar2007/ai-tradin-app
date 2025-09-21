@@ -48,7 +48,8 @@ const itemVariants: Variants = {
   }
 };
 
-const TradeList: React.FC<TradeListProps> = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onToggleSelect, selectedTradeIds }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const TradeList = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onToggleSelect, selectedTradeIds }: TradeListProps) => {
   if (trades.length === 0) {
     return (
       <div className="text-center py-16 px-6 bg-surface border-2 border-dashed border-border rounded-xl">

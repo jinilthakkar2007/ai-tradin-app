@@ -12,7 +12,8 @@ interface NewTradeFormProps {
   prefillData?: Partial<Omit<Trade, 'id' | 'status' | 'openDate'>> | null;
 }
 
-const backdropVariants = {
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
+const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
@@ -24,7 +25,8 @@ const modalVariants: Variants = {
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-const NewTradeForm: React.FC<NewTradeFormProps> = ({ onAddTrade, onAddAndSimulate, onClose, prefillData }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const NewTradeForm = ({ onAddTrade, onAddAndSimulate, onClose, prefillData }: NewTradeFormProps) => {
   const [asset, setAsset] = useState(prefillData?.asset || ASSET_SYMBOLS[0]);
   const [direction, setDirection] = useState<TradeDirection>(prefillData?.direction || 'LONG');
   const [entryPrice, setEntryPrice] = useState(prefillData?.entryPrice?.toString() || '');

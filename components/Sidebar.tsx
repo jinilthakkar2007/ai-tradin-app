@@ -36,7 +36,8 @@ const navItems = [
     { view: 'backtesting' as const, icon: <FlaskIcon />, label: 'Backtesting', premium: true },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ activeView, onNavigate, user, onLogout, onShowSettings, onShowAccount, alertCount }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const Sidebar = ({ activeView, onNavigate, user, onLogout, onShowSettings, onShowAccount, alertCount }: SidebarProps) => {
     const isPremium = user.subscriptionTier === 'Premium';
 
     const NavButton: React.FC<{

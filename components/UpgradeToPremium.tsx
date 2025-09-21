@@ -6,10 +6,11 @@ interface UpgradeToPremiumProps {
   onUpgradeClick: () => void;
 }
 
-const UpgradeToPremium: React.FC<UpgradeToPremiumProps> = ({ onUpgradeClick }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const UpgradeToPremium = ({ onUpgradeClick }: UpgradeToPremiumProps) => {
   return (
-    <div className="bg-background-surface border-2 border-dashed border-accent-blue/30 p-8 rounded-lg text-center shadow-glow-blue">
-      <div className="mb-4 inline-block p-4 bg-accent-blue/10 rounded-full">
+    <div className="bg-surface border-2 border-dashed border-brand/30 p-8 rounded-lg text-center shadow-glow-brand">
+      <div className="mb-4 inline-block p-4 bg-brand/10 rounded-full text-brand">
          <ChatIcon />
       </div>
       <h3 className="text-2xl font-bold text-text-primary mb-2">Unlock the AI Trade Assistant</h3>
@@ -29,7 +30,7 @@ const UpgradeToPremium: React.FC<UpgradeToPremiumProps> = ({ onUpgradeClick }) =
       </ul>
       <motion.button
         onClick={onUpgradeClick}
-        className="bg-accent-blue hover:bg-accent-blueHover text-white font-bold py-3 px-8 rounded-lg transition-transform duration-200"
+        className="bg-brand hover:bg-brand-hover text-white font-bold py-3 px-8 rounded-lg transition-transform duration-200"
         whileHover={{ scale: 1.05, y: -2 }}
         whileTap={{ scale: 0.95 }}
       >

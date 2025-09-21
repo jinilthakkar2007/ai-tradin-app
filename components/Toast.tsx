@@ -7,14 +7,16 @@ interface ToastProps {
     onDismiss: (id: string) => void;
     onShowAlert: (alert: Alert) => void;
 }
-    
+
+// FIX: Explicitly type toastVariants with the Variants type from framer-motion.
 const toastVariants: Variants = {
     hidden: { opacity: 0, x: 100, scale: 0.9 },
     visible: { opacity: 1, x: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 30 } },
     exit: { opacity: 0, x: 50, scale: 0.8, transition: { duration: 0.3, ease: 'easeOut' } }
 };
 
-const Toast: React.FC<ToastProps> = ({ alert, onDismiss, onShowAlert }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const Toast = ({ alert, onDismiss, onShowAlert }: ToastProps) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onDismiss(alert.id);

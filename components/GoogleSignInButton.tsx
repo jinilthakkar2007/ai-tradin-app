@@ -1,52 +1,77 @@
+
 import React, { useEffect, useRef } from 'react';
 
-// FIX: Add a global declaration for the `google` object on the `window` to resolve TypeScript errors.
+// --- IMPORTANT SETUP ---
+// To enable Google Sign-In, you must provide your Google Cloud Client ID.
+// 1. Go to https://console.cloud.google.com/apis/credentials
+// 2. Create or select a project.
+// 3. Create an "OAuth 2.0 Client ID" for a "Web application".
+// 4. Add your app's origin to the "Authorized JavaScript origins".
+// 5. Copy the Client ID and paste it below.
+const GOOGLE_CLIENT_ID = '987654321098-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com'; // Replace with your actual Google Client ID
+
+// Extend the Window interface to include the `google` object from the GSI script
 declare global {
     interface Window {
-        google?: {
-            accounts: {
-                id: {
-                    renderButton: (
-                        parent: HTMLElement,
-                        options: {
-                            theme: 'outline' | 'filled_blue' | 'filled_black';
-                            size: 'large' | 'medium' | 'small';
-                            type: 'standard' | 'icon';
-                            text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-                            width?: number;
-                        }
-                    ) => void;
-                };
-            };
-        };
+        google: any;
     }
 }
 
-
 interface GoogleSignInButtonProps {
+    onSuccess: (response: any) => void;
+    onError?: () => void;
     text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
 }
 
-const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ text = 'continue_with' }) => {
-  const buttonRef = useRef<HTMLDivElement>(null);
+const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ onSuccess, onError, text = 'continue_with' }) => {
+    const buttonRef = useRef<HTMLDivElement>(null);
+    const isRenderedRef = useRef(false);
 
-  useEffect(() => {
-    if (buttonRef.current && window.google?.accounts.id) {
-        // Ensure the container is empty before rendering
-        if (buttonRef.current.childElementCount === 0) {
-            window.google.accounts.id.renderButton(
-                buttonRef.current,
-                // FIX: The 'width' property must be a number, not a string. Changed '320' to 320.
-                { theme: 'outline', size: 'large', type: 'standard', text, width: 320 }
-            );
+    useEffect(() => {
+        if (isRenderedRef.current || !buttonRef.current) {
+            return;
         }
-    }
-  }, [text]);
 
-  // Use a unique ID for the container in case this component is rendered multiple times
-  const id = `google-button-${React.useId()}`;
+        const checkGoogle = () => {
+            if (window.google?.accounts?.id) {
+                if (GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
+                    console.error('ERROR: Google Client ID is not set in GoogleSignInButton.tsx. Please follow the setup instructions in the component file.');
+                    if (buttonRef.current) {
+                        buttonRef.current.innerHTML = '<div class="text-center p-3 bg-accent-red/10 border border-accent-red rounded-md text-sm text-accent-red" style="max-width: 320px;">Google Sign-In is not configured. <br/> Please set the Client ID.</div>';
+                    }
+                    return;
+                }
 
-  return <div ref={buttonRef} id={id} className="flex justify-center"></div>;
+                window.google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: onSuccess,
+                    error_callback: onError
+                });
+
+                window.google.accounts.id.renderButton(
+                    buttonRef.current,
+                    { 
+                        theme: 'outline', 
+                        size: 'large', 
+                        text, 
+                        shape: 'rectangular',
+                        logo_alignment: 'left',
+                        width: "320",
+                    }
+                );
+                
+                isRenderedRef.current = true;
+            } else {
+                // If GSI script hasn't loaded yet, wait and try again.
+                setTimeout(checkGoogle, 100);
+            }
+        };
+
+        checkGoogle();
+
+    }, [onSuccess, onError, text]);
+
+    return <div ref={buttonRef} id="google-signin-button"></div>;
 };
 
 export default GoogleSignInButton;

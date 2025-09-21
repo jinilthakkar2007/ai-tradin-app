@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Alert, Trade } from '../types';
@@ -11,18 +12,21 @@ interface AlertModalProps {
   onCommentaryFetched: (alertId: string, commentary: string) => void;
 }
 
-const backdropVariants = {
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
+const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
 
+// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-const AlertModal: React.FC<AlertModalProps> = ({ alert, onClose, trades, onCommentaryFetched }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const AlertModal = ({ alert, onClose, trades, onCommentaryFetched }: AlertModalProps) => {
   const isSuccess = alert.type === 'success';
   const [commentary, setCommentary] = useState(alert.aiCommentary ?? 'Generating AI analysis...');
 

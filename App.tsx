@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader } from './types';
+import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader, Prices } from './types';
 import { useAuth } from './hooks/useAuth';
+import { useTradeMonitor } from './hooks/useTradeMonitor';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -26,6 +27,8 @@ import HistoryView from './components/HistoryView';
 import AccountModal from './components/AccountModal';
 import UpgradeModal from './components/UpgradeModal';
 import SettingsModal from './components/SettingsModal';
+import AuthPage from './components/AuthPage';
+import VerificationSuccessModal from './components/VerificationSuccessModal';
 
 // Toasts
 import ToastContainer from './components/ToastContainer';
@@ -42,10 +45,19 @@ const App: React.FC = () => {
     });
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [view, setView] = useState<View>('dashboard');
-    const { user, setUser, logout } = useAuth();
+    const { user, setUser, logout, loadingAuth, authError, isNewlyVerified, acknowledgeVerification } = useAuth();
     const [userSettings, setUserSettings] = useState<UserSettings>(() => {
-        const savedSettings = localStorage.getItem('userSettings');
-        return savedSettings ? JSON.parse(savedSettings) : DEFAULT_USER_SETTINGS;
+        try {
+            const savedSettings = localStorage.getItem('userSettings');
+            if (savedSettings) {
+                const parsedSettings = JSON.parse(savedSettings);
+                // Merge with defaults to ensure all keys are present, even if settings structure changes
+                return { ...DEFAULT_USER_SETTINGS, ...parsedSettings };
+            }
+        } catch (error) {
+            console.error("Failed to parse user settings from localStorage, using defaults.", error);
+        }
+        return DEFAULT_USER_SETTINGS;
     });
     const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
         return localStorage.getItem('hasOnboarded') === 'true';
@@ -54,6 +66,7 @@ const App: React.FC = () => {
         const saved = localStorage.getItem('copiedTraders');
         return saved ? new Set(JSON.parse(saved)) : new Set();
     });
+    const [selectedMarketAsset, setSelectedMarketAsset] = useState<string | null>(null);
     
     // Modal states
     const [isNewTradeFormVisible, setIsNewTradeFormVisible] = useState(false);
@@ -134,6 +147,8 @@ const App: React.FC = () => {
         }));
     }, [createAlert]);
 
+    const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
+
     const addTrade = useCallback((tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
         const newTrade: Trade = {
             ...tradeData,
@@ -145,6 +160,11 @@ const App: React.FC = () => {
         setIsNewTradeFormVisible(false);
         setQuickTradeData(null);
         createAlert(newTrade, `New ${newTrade.direction} trade logged for ${newTrade.asset}.`, 'info', true);
+
+        // Navigate to market view and select the new asset
+        setView('market');
+        setSelectedMarketAsset(newTrade.asset);
+
         return newTrade; // Return the created trade for notifications
     }, [createAlert]);
     
@@ -253,6 +273,8 @@ const App: React.FC = () => {
 
     const handleUpgrade = useCallback(() => {
         if(user) {
+            // In a real app, this would involve a payment flow and backend update.
+            // For now, we just update the local user state.
             setUser({ ...user, subscriptionTier: 'Premium' });
         }
         setIsUpgradeModalVisible(false);
@@ -307,10 +329,16 @@ const App: React.FC = () => {
         };
     }, [trades, tradeHistory]);
 
+    if (loadingAuth) {
+        return (
+            <div className="bg-background min-h-screen flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-t-brand border-border rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+    
     if (!user) {
-        // In a real app, you would show a login page.
-        // For this demo, useAuth provides a mock user.
-        return <div>Loading user...</div>;
+        return <AuthPage authError={authError} />;
     }
     
     const handleOnboardingComplete = () => {
@@ -348,14 +376,13 @@ const App: React.FC = () => {
                             <Dashboard 
                                 stats={userStats} 
                                 trades={trades} 
+                                prices={prices}
                                 onNewTrade={() => setIsNewTradeFormVisible(true)}
                                 onEditTrade={setEditingTrade}
                                 onDeleteTrade={deleteTrade}
                                 onSetPriceAlert={setPriceAlert}
                                 onOpenJournal={setJournalingTrade}
                                 onQuickTrade={handleQuickTrade}
-                                handleTradeTrigger={handleTradeTrigger}
-                                handleCustomAlert={handleCustomAlert}
                             />
                         </motion.div>
                     )}
@@ -392,12 +419,29 @@ const App: React.FC = () => {
                     )}
                     {view === 'market' && (
                         <motion.div key="market" {...motionProps}>
-                            <MarketView activeTrades={activeTrades} onNewTrade={handleQuickTrade} userSettings={userSettings} />
+                            <MarketView 
+                                trades={trades}
+                                activeTrades={activeTrades} 
+                                onNewTrade={handleQuickTrade} 
+                                userSettings={userSettings}
+                                selectedAssetSymbol={selectedMarketAsset}
+                                setSelectedAssetSymbol={setSelectedMarketAsset}
+                                prices={prices}
+                                onEditTrade={setEditingTrade}
+                                onDeleteTrade={deleteTrade}
+                                onSetPriceAlert={setPriceAlert}
+                                onOpenJournal={setJournalingTrade}
+                            />
                         </motion.div>
                     )}
                     {view === 'portfolio' && (
                         <motion.div key="portfolio" {...motionProps}>
-                            <PortfolioView stats={userStats} activeTrades={activeTrades} tradeHistory={tradeHistory} />
+                            <PortfolioView 
+                                stats={userStats} 
+                                activeTrades={activeTrades} 
+                                tradeHistory={tradeHistory}
+                                prices={prices}
+                            />
                         </motion.div>
                     )}
                     {view === 'strategy' && (
@@ -414,6 +458,8 @@ const App: React.FC = () => {
             </main>
 
             <AnimatePresence>
+                {isNewlyVerified && <VerificationSuccessModal onContinue={acknowledgeVerification} />}
+
                 {!hasOnboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
 
                 {isNewTradeFormVisible && (

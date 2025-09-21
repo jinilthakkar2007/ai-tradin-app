@@ -10,7 +10,8 @@ interface TradeIdeasProps {
     onQuickTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
 }
 
-const TradeIdeas: React.FC<TradeIdeasProps> = ({ ideas, onQuickTrade }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const TradeIdeas = ({ ideas, onQuickTrade }: TradeIdeasProps) => {
     if (ideas.length === 0) {
         return (
             <div className="text-center text-text-secondary text-sm py-8">

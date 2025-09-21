@@ -32,7 +32,8 @@ interface BacktestResults {
     trades: SimulatedTrade[];
 }
 
-const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeClick }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const BacktestingView = ({ isPremium, onUpgradeClick }: BacktestingViewProps) => {
   const [asset, setAsset] = useState(ASSET_SYMBOLS[0]);
   const [timeframe, setTimeframe] = useState<Timeframe>('1D');
   const [fastMa, setFastMa] = useState(10);
@@ -96,7 +97,7 @@ const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeC
                 });
                 entryPrice = 0;
                 entryDate = '';
-                signals.push({ time: currentDate, position: 'aboveBar', color: '#DA3633', shape: 'arrowDown' });
+                signals.push({ time: currentDate, position: 'aboveBar', color: '#DA33', shape: 'arrowDown' });
             }
         }
         
@@ -151,33 +152,33 @@ const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeC
       <p className="text-text-secondary">Test a simple Moving Average (MA) Crossover strategy on historical data.</p>
       
       {/* Configuration Panel */}
-      <div className="bg-background-surface border border-background-light rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+      <div className="bg-surface border border-border rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
             <label htmlFor="asset" className="block text-sm font-medium text-text-secondary mb-1">Asset</label>
-            <select id="asset" value={asset} onChange={e => setAsset(e.target.value)} className="w-full bg-background border border-background-light text-text-primary rounded-md p-2 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue">
+            <select id="asset" value={asset} onChange={e => setAsset(e.target.value)} className="w-full bg-background border border-border text-text-primary rounded-md p-2 focus:ring-2 focus:ring-brand focus:border-brand">
               {ASSET_SYMBOLS.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="timeframe" className="block text-sm font-medium text-text-secondary mb-1">Timeframe</label>
-            <select id="timeframe" value={timeframe} onChange={e => setTimeframe(e.target.value as Timeframe)} className="w-full bg-background border border-background-light text-text-primary rounded-md p-2 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue">
+            <select id="timeframe" value={timeframe} onChange={e => setTimeframe(e.target.value as Timeframe)} className="w-full bg-background border border-border text-text-primary rounded-md p-2 focus:ring-2 focus:ring-brand focus:border-brand">
                 <option value="1D">1 Day</option>
                 <option value="1W">1 Week</option>
             </select>
           </div>
           <div>
             <label htmlFor="fastMa" className="block text-sm font-medium text-text-secondary mb-1">Fast MA Period</label>
-            <input type="number" id="fastMa" value={fastMa} onChange={e => setFastMa(parseInt(e.target.value))} className="w-full bg-background border border-background-light text-text-primary rounded-md p-2 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue" min="2" max="50"/>
+            <input type="number" id="fastMa" value={fastMa} onChange={e => setFastMa(parseInt(e.target.value))} className="w-full bg-background border border-border text-text-primary rounded-md p-2 focus:ring-2 focus:ring-brand focus:border-brand" min="2" max="50"/>
           </div>
            <div>
             <label htmlFor="slowMa" className="block text-sm font-medium text-text-secondary mb-1">Slow MA Period</label>
-            <input type="number" id="slowMa" value={slowMa} onChange={e => setSlowMa(parseInt(e.target.value))} className="w-full bg-background border border-background-light text-text-primary rounded-md p-2 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue" min="5" max="200"/>
+            <input type="number" id="slowMa" value={slowMa} onChange={e => setSlowMa(parseInt(e.target.value))} className="w-full bg-background border border-border text-text-primary rounded-md p-2 focus:ring-2 focus:ring-brand focus:border-brand" min="5" max="200"/>
           </div>
           <motion.button 
             onClick={runBacktest} 
             disabled={isLoading}
             whileTap={{ scale: 0.95 }} 
-            className="w-full py-2 px-5 bg-accent-blue hover:bg-accent-blueHover rounded-md text-white font-semibold transition-colors disabled:bg-background-light disabled:cursor-not-allowed"
+            className="w-full py-2 px-5 bg-brand hover:bg-brand-hover rounded-md text-white font-semibold transition-colors disabled:bg-border disabled:cursor-not-allowed"
           >
             {isLoading ? 'Running...' : 'Run Backtest'}
           </motion.button>
@@ -197,7 +198,7 @@ const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeC
                   <StatCard icon={<XCircleIcon />} label="Total Trades" value={results.totalTrades} />
               </motion.div>
 
-              <div className="bg-background-surface border border-background-light rounded-lg p-4">
+              <div className="bg-surface border border-border rounded-lg p-4">
                   <BacktestChart 
                       data={chartData.ohlc}
                       fastMaData={chartData.fastMa}
@@ -208,11 +209,11 @@ const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeC
                   />
               </div>
 
-              <div className="bg-background-surface border border-background-light rounded-lg p-4">
+              <div className="bg-surface border border-border rounded-lg p-4">
                   <h3 className="text-xl font-semibold mb-4">Trade History</h3>
                   <div className="overflow-x-auto max-h-96">
                       <table className="w-full text-left tabular-nums">
-                          <thead className="text-xs text-text-secondary uppercase border-b border-background-light sticky top-0 bg-background-surface">
+                          <thead className="text-xs text-text-secondary uppercase border-b border-border sticky top-0 bg-surface">
                               <tr>
                                   <th scope="col" className="px-4 py-3">Entry Date</th>
                                   <th scope="col" className="px-4 py-3">Entry Price</th>
@@ -223,7 +224,7 @@ const BacktestingView: React.FC<BacktestingViewProps> = ({ isPremium, onUpgradeC
                           </thead>
                           <tbody>
                               {results.trades.map((trade, index) => (
-                                  <tr key={index} className="border-b border-background-light hover:bg-background-light/50">
+                                  <tr key={index} className="border-b border-border hover:bg-border/50">
                                       <td className="px-4 py-3 text-text-secondary">{trade.entryDate}</td>
                                       <td className="px-4 py-3 text-text-primary">${trade.entryPrice.toFixed(2)}</td>
                                       <td className="px-4 py-3 text-text-secondary">{trade.exitDate}</td>

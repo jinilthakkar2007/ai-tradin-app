@@ -1,3 +1,4 @@
+
 export type View = 'dashboard' | 'history' | 'alerts' | 'chatbot' | 'market' | 'strategy' | 'portfolio' | 'backtesting' | 'copy-trading';
 
 export interface TakeProfit {
@@ -80,8 +81,9 @@ export interface ChatMessage {
 }
 
 export interface User {
-    name: string;
+    id: string;
     email: string;
+    name?: string;
     picture?: string;
     subscriptionTier: 'Free' | 'Premium';
 }
@@ -143,4 +145,14 @@ export interface ProTrader {
   };
   // A list of trade structures this trader might execute
   tradeTemplates: Omit<Trade, 'id' | 'status' | 'openDate' | 'entryPrice' | 'stopLoss' | 'takeProfits' | 'riskPercentage'>[];
+}
+
+export interface AssetPerformanceData {
+  symbol: string;
+  totalTrades: number;
+  winRate: number;
+  totalPL: number;
+  realizedPL: number;
+  unrealizedPL: number;
+  avgPL: number;
 }

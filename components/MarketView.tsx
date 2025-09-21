@@ -1,29 +1,49 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MarketData, Trade, TradeDirection, UserSettings } from '../types';
+import { MarketData, Trade, TradeDirection, UserSettings, Prices, PriceAlert } from '../types';
 import { tradingViewService } from '../services/tradingViewService';
 import SearchIcon from './icons/SearchIcon';
 import CandlestickChart from './CandlestickChart';
 import OrderBook from './OrderBook';
+import AssetTradeList from './AssetTradeList';
 
 interface MarketViewProps {
+  trades: Trade[];
   activeTrades: Trade[];
   onNewTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
   userSettings: UserSettings;
+  selectedAssetSymbol: string | null;
+  setSelectedAssetSymbol: (symbol: string | null) => void;
+  prices: Prices;
+  onEditTrade: (trade: Trade) => void;
+  onDeleteTrade: (tradeId: string) => void;
+  onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onOpenJournal: (trade: Trade) => void;
 }
 
-const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userSettings }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const MarketView = ({
+  trades,
+  activeTrades,
+  onNewTrade,
+  userSettings,
+  selectedAssetSymbol,
+  setSelectedAssetSymbol,
+  prices,
+  onEditTrade,
+  onDeleteTrade,
+  onSetPriceAlert,
+  onOpenJournal
+}: MarketViewProps) => {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFlashes, setPriceFlashes] = useState<Record<string, 'up' | 'down'>>({});
-  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | null>(null);
   const prevMarketDataRef = useRef<MarketData[]>([]);
-
-  const activeSymbols = useMemo(() => new Set(activeTrades.map(t => t.asset)), [activeTrades]);
   
   const selectedAsset = useMemo(() => {
     if (!selectedAssetSymbol) return null;
-    // Find the latest asset data from marketData
     return marketData.find(d => d.symbol === selectedAssetSymbol) || null;
   }, [marketData, selectedAssetSymbol]);
 
@@ -200,6 +220,20 @@ const MarketView: React.FC<MarketViewProps> = ({ activeTrades, onNewTrade, userS
             </div>
             <div className="lg:col-span-1">
               <OrderBook assetSymbol={selectedAsset.symbol} basePrice={selectedAsset.price} />
+            </div>
+            <div className="lg:col-span-3 mt-6">
+              <div className="bg-surface border border-border rounded-lg p-4 sm:p-6">
+                <h3 className="text-xl font-bold text-text-primary mb-4">Your Trades for {selectedAsset.symbol}</h3>
+                <AssetTradeList 
+                  assetSymbol={selectedAsset.symbol}
+                  trades={trades}
+                  prices={prices}
+                  onEditTrade={onEditTrade}
+                  onDeleteTrade={onDeleteTrade}
+                  onSetPriceAlert={onSetPriceAlert}
+                  onOpenJournal={onOpenJournal}
+                />
+              </div>
             </div>
           </motion.div>
         )}

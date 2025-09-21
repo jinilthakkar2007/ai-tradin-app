@@ -7,7 +7,8 @@ interface AlertItemProps {
   onClick: () => void;
 }
 
-const AlertItem: React.FC<AlertItemProps> = ({ alert, onClick }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const AlertItem = ({ alert, onClick }: AlertItemProps) => {
   const getIcon = () => {
     switch (alert.type) {
       case 'success':
@@ -24,7 +25,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onClick }) => {
   const borderColorClass = {
     success: 'border-accent-green',
     error: 'border-accent-red',
-    info: 'border-accent-blue',
+    info: 'border-brand',
   }[alert.type];
 
   return (
@@ -32,7 +33,7 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onClick }) => {
       whileHover={{ scale: 1.015, x: 5 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`bg-background-surface p-4 rounded-lg shadow-md cursor-pointer border-l-4 ${borderColorClass} flex items-center gap-4 transition-all duration-200 hover:bg-background-light hover:shadow-xl relative`}
+      className={`bg-surface p-4 rounded-lg shadow-md cursor-pointer border-l-4 ${borderColorClass} flex items-center gap-4 transition-all duration-200 hover:bg-border hover:shadow-xl relative`}
       role="button"
       tabIndex={0}
       aria-label={`View alert for ${alert.asset}`}
@@ -40,8 +41,8 @@ const AlertItem: React.FC<AlertItemProps> = ({ alert, onClick }) => {
     >
       {!alert.read && (
           <span className="absolute -top-1 -left-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-blue opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-accent-blue" title="Unread"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-brand" title="Unread"></span>
           </span>
       )}
       <div className="flex-shrink-0 text-xl">{getIcon()}</div>

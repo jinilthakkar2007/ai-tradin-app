@@ -11,7 +11,8 @@ interface AccountModalProps {
   onOpenUpgradeModal: () => void;
 }
 
-const backdropVariants = {
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
+const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
@@ -23,7 +24,8 @@ const modalVariants: Variants = {
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-const AccountModal: React.FC<AccountModalProps> = ({ user, stats, onClose, onOpenUpgradeModal }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const AccountModal = ({ user, stats, onClose, onOpenUpgradeModal }: AccountModalProps) => {
   const isPremium = user.subscriptionTier === 'Premium';
   const displayName = user.name || user.email.split('@')[0];
 
@@ -47,6 +49,9 @@ const AccountModal: React.FC<AccountModalProps> = ({ user, stats, onClose, onOpe
         className="bg-glass border border-white/10 rounded-lg shadow-2xl w-full max-w-sm"
         variants={modalVariants}
         onClick={(e) => e.stopPropagation()}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
       >
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-text-primary">Account Information</h2>

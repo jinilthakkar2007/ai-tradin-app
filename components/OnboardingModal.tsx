@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { welcomeImageBase64 } from '../assets/welcome-image';
@@ -11,17 +12,20 @@ interface OnboardingModalProps {
   onComplete: () => void;
 }
 
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
 const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
 
+// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
+// FIX: Explicitly type contentVariants with the Variants type from framer-motion.
 const contentVariants: Variants = {
   hidden: { opacity: 0, x: 20 },
   visible: { opacity: 1, x: 0, transition: { delay: 0.2, duration: 0.4 } },
@@ -57,7 +61,8 @@ const onboardingSteps = [
   },
 ];
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const OnboardingModal = ({ onComplete }: OnboardingModalProps) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const handleNext = () => {
@@ -87,6 +92,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) => {
       <motion.div
         className="bg-glass border border-white/10 rounded-lg shadow-2xl w-full max-w-md overflow-hidden"
         variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
         key="onboarding-modal"
       >
         <div className="p-8 text-center">

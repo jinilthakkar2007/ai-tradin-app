@@ -12,7 +12,8 @@ interface CopyTradingViewProps {
   onToggleCopy: (traderId: string) => void;
 }
 
-const CopyTradingView: React.FC<CopyTradingViewProps> = ({ isPremium, onUpgradeClick, copiedTraders, onToggleCopy }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const CopyTradingView = ({ isPremium, onUpgradeClick, copiedTraders, onToggleCopy }: CopyTradingViewProps) => {
   if (!isPremium) {
     return (
       <div className="flex items-center justify-center h-full">

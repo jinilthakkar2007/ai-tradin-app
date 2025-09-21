@@ -6,7 +6,8 @@ interface CheckboxIconProps {
   state: 'checked' | 'unchecked' | 'indeterminate';
 }
 
-const CheckboxIcon: React.FC<CheckboxIconProps> = ({ state }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const CheckboxIcon = ({ state }: CheckboxIconProps) => {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-colors">
       <rect x="1.5" y="1.5" width="17" height="17" rx="4.5" 

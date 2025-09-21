@@ -1,4 +1,6 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+// FIX: Import Variants to correctly type animation variants
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Trade, PriceAlert } from '../types';
 import EditIcon from './icons/EditIcon';
@@ -19,19 +21,22 @@ interface TradeItemProps {
   onToggleSelect?: (tradeId: string) => void;
 }
 
+// FIX: Explicitly type detailsVariants with the Variants type from framer-motion.
 const detailsVariants: Variants = {
   hidden: { opacity: 0, height: 0 },
   visible: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
   exit: { opacity: 0, height: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
+// FIX: Explicitly type alertFormVariants with the Variants type from framer-motion.
 const alertFormVariants: Variants = {
   hidden: { opacity: 0, height: 0, marginTop: 0 },
   visible: { opacity: 1, height: 'auto', marginTop: '16px', transition: { duration: 0.3, ease: 'easeInOut' } },
   exit: { opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
-const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const TradeItem = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }: TradeItemProps) => {
   const { asset, direction, entryPrice, stopLoss, takeProfits, status, closePrice, priceAlert, journal } = trade;
   const isLong = direction === 'LONG';
   const isHistory = status !== 'ACTIVE';
@@ -72,6 +77,13 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, onEditTrade,
         pnlBgColor: bgColor
     };
   }, [displayPrice, entryPrice, trade.quantity, isLong]);
+  
+  const hoverGlowClass = useMemo(() => {
+    if (isHistory || isSelected) return ''; // No hover glow for historical or selected items
+    if (profitLoss > 0) return 'group-hover:shadow-glow-green';
+    if (profitLoss < 0) return 'group-hover:shadow-glow-red';
+    return ''; // No glow for zero P/L
+  }, [profitLoss, isHistory, isSelected]);
   
   const finalTpPrice = React.useMemo(() => {
     if (!takeProfits || takeProfits.length === 0) return entryPrice;
@@ -135,7 +147,7 @@ const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, onEditTrade,
 
   return (
     <motion.div 
-      className={`bg-surface rounded-xl border transition-all duration-300 relative group overflow-hidden ${isSelected ? 'border-brand shadow-glow-brand' : 'border-border hover:border-brand/50'} ${showTriggerGlow ? 'shadow-glow-yellow' : ''}`}
+      className={`bg-surface rounded-xl border transition-all duration-300 relative group overflow-hidden ${isSelected ? 'border-brand shadow-glow-brand' : `border-border hover:border-brand/50 ${hoverGlowClass}`} ${showTriggerGlow ? 'shadow-glow-yellow' : ''}`}
       whileHover={{ y: isSelected ? 0 : -2 }}
       layout
     >

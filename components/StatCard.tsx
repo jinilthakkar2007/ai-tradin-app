@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -11,7 +12,8 @@ interface StatCardProps {
   intent?: 'positive' | 'negative' | 'neutral';
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon, label, value, tooltip, intent = 'neutral' }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const StatCard = ({ icon, label, value, tooltip, intent = 'neutral' }: StatCardProps) => {
     
     const intentClasses = {
         positive: {

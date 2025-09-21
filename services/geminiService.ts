@@ -135,10 +135,27 @@ export const getAITradeAnalysis = async (query: string) => {
   }
 };
 
+// --- Rate limiting for getAIOrderBookAnalysis ---
+let lastOrderBookAnalysisTimestamp = 0;
+let isFetchingOrderBookAnalysis = false; // Add a lock to prevent concurrent requests
+const ORDER_BOOK_ANALYSIS_COOLDOWN_MS = 12000; // 12 seconds cooldown for safety
+
 /**
- * Generates AI analysis of an order book.
+ * Generates AI analysis of an order book, with client-side rate limiting and a concurrency lock.
  */
 export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBookData): Promise<string> => {
+  if (isFetchingOrderBookAnalysis) {
+    console.warn("AI Order Book Analysis request blocked due to an ongoing request.");
+    return "An analysis is already in progress. Please wait a moment.";
+  }
+
+  const now = Date.now();
+  if (now - lastOrderBookAnalysisTimestamp < ORDER_BOOK_ANALYSIS_COOLDOWN_MS) {
+    const timeLeft = Math.ceil((ORDER_BOOK_ANALYSIS_COOLDOWN_MS - (now - lastOrderBookAnalysisTimestamp)) / 1000);
+    console.warn(`AI Order Book Analysis request throttled. Please wait ${timeLeft}s.`);
+    return `To prevent rate-limiting, please wait ${timeLeft} more seconds before requesting another analysis.`;
+  }
+
   const totalBidVolume = orderBook.bids.reduce((sum, bid) => sum + bid.quantity, 0);
   const totalAskVolume = orderBook.asks.reduce((sum, ask) => sum + ask.quantity, 0);
 
@@ -155,6 +172,8 @@ export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBook
   `;
 
   try {
+    isFetchingOrderBookAnalysis = true; // Set lock
+    lastOrderBookAnalysisTimestamp = Date.now();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -168,6 +187,8 @@ export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBook
     return text ? text.trim() : "Could not generate AI analysis at this time.";
   } catch (error) {
     console.error("Error fetching AI order book analysis:", error);
-    return "Could not generate AI analysis at this time.";
+    return "Could not generate AI analysis at this time due to an API error.";
+  } finally {
+    isFetchingOrderBookAnalysis = false; // Release lock
   }
 };

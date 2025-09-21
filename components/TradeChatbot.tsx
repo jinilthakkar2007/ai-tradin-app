@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatMessage, Trade, TradeDirection, TakeProfit } from '../types';
 import ChatMessageComponent from './ChatMessage';
@@ -136,12 +135,12 @@ What **quantity** would you like to use for this trade? Or you can type **'cance
     };
 
     return (
-        <div className="flex flex-col h-[80vh] bg-background-surface border border-background-light rounded-lg shadow-lg">
+        <div className="flex flex-col h-[80vh] bg-surface border border-border rounded-lg shadow-lg">
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                 {messages.map((msg) => <ChatMessageComponent key={msg.id} message={msg} />)}
                 <div ref={chatEndRef} />
             </div>
-            <div className="p-4 bg-background-surface/50 border-t border-background-light">
+            <div className="p-4 bg-surface/50 border-t border-border">
                 <form onSubmit={handleUserInput}>
                     <input
                         type="text"
@@ -149,7 +148,7 @@ What **quantity** would you like to use for this trade? Or you can type **'cance
                         onChange={(e) => setUserInput(e.target.value)}
                         placeholder={getPlaceholderText()}
                         disabled={step === 'PROCESSING' || step === 'IDLE'}
-                        className="w-full bg-background border border-background-light text-text-primary rounded-md py-2 px-4 focus:ring-2 focus:ring-accent-blue focus:border-accent-blue transition-colors"
+                        className="w-full bg-background border border-border text-text-primary rounded-md py-2 px-4 focus:ring-2 focus:ring-brand focus:border-brand transition-colors"
                         aria-label="Chat input"
                     />
                 </form>

@@ -11,7 +11,8 @@ interface HistoryViewProps {
   onDeleteTrades: (tradeIds: string[]) => void;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ tradeHistory, onOpenJournal, onDeleteTrades }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const HistoryView = ({ tradeHistory, onOpenJournal, onDeleteTrades }: HistoryViewProps) => {
   const [selectedTradeIds, setSelectedTradeIds] = useState<Set<string>>(new Set());
 
   const handleToggleSelect = (tradeId: string) => {
@@ -73,8 +74,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ tradeHistory, onOpenJournal, 
         <TradeList
           trades={tradeHistory}
           prices={{}} // No live prices needed for history
-          // FIX: Removed unsupported 'isHistory' prop. The TradeItem component correctly determines
-          // if a trade is historical based on its 'status' property.
           onOpenJournal={onOpenJournal}
           selectedTradeIds={selectedTradeIds}
           onToggleSelect={handleToggleSelect}

@@ -34,10 +34,11 @@ const itemVariants: Variants = {
   },
 };
 
-const AlertList: React.FC<AlertListProps> = ({ alerts, onShowAlert }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const AlertList = ({ alerts, onShowAlert }: AlertListProps) => {
   if (alerts.length === 0) {
     return (
-      <div className="bg-background-surface/50 border-2 border-dashed border-background-light p-12 rounded-lg text-center text-text-secondary mt-4">
+      <div className="bg-surface/50 border-2 border-dashed border-border p-12 rounded-lg text-center text-text-secondary mt-4">
         <p className="text-lg font-medium">No alerts match the current filters.</p>
         <p className="mt-2">Try adjusting your filter settings or wait for a new alert.</p>
       </div>

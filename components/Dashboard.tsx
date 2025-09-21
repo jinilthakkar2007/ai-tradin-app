@@ -1,7 +1,7 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trade, PriceAlert, UserStats, TradeDirection } from '../types';
-import { useTradeMonitor } from '../hooks/useTradeMonitor';
+import { Trade, PriceAlert, UserStats, TradeDirection, Prices } from '../types';
 import TradeList from './TradeList';
 import PerformanceChart from './PerformanceChart';
 import MarketNews from './MarketNews';
@@ -15,28 +15,27 @@ import TradeFilters, { Filters } from './TradeFilters';
 interface DashboardProps {
   stats: UserStats;
   trades: Trade[];
+  prices: Prices;
   onNewTrade: () => void;
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
   onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
   onOpenJournal: (trade: Trade) => void;
   onQuickTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
-  handleTradeTrigger: (trade: Trade, status: 'CLOSED_TP' | 'CLOSED_SL', price: number) => void;
-  handleCustomAlert: (trade: Trade) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const Dashboard = ({ 
     stats, 
     trades, 
+    prices,
     onNewTrade, 
     onEditTrade, 
     onDeleteTrade, 
     onSetPriceAlert, 
     onOpenJournal, 
     onQuickTrade,
-    handleTradeTrigger,
-    handleCustomAlert
-}) => {
+}: DashboardProps) => {
   const [tradeIdeas, setTradeIdeas] = useState<TradeIdea[]>([]);
   const [filters, setFilters] = useState<Filters>({ status: 'ACTIVE', direction: 'ALL', asset: 'ALL' });
   const MAX_IDEAS = 4;
@@ -53,8 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const activeTrades = useMemo(() => trades.filter(t => t.status === 'ACTIVE'), [trades]);
   const tradeHistory = useMemo(() => trades.filter(t => t.status !== 'ACTIVE').sort((a, b) => new Date(b.closeDate!).getTime() - new Date(a.closeDate!).getTime()), [trades]);
-
-  const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
 
   const filteredTrades = useMemo(() => {
     const statusFilter = (trade: Trade) => {

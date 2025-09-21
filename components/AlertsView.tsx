@@ -12,7 +12,8 @@ interface AlertsViewProps {
 type AlertTypeFilter = 'all' | 'success' | 'error' | 'info';
 type ReadStatusFilter = 'all' | 'unread';
 
-const AlertsView: React.FC<AlertsViewProps> = ({ alerts, onShowAlert }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const AlertsView = ({ alerts, onShowAlert }: AlertsViewProps) => {
   const [typeFilter, setTypeFilter] = useState<AlertTypeFilter>('all');
   const [readStatusFilter, setReadStatusFilter] = useState<ReadStatusFilter>('all');
 
@@ -32,7 +33,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ alerts, onShowAlert }) => {
       </motion.div>
 
       <motion.div 
-        className="bg-background-surface border border-background-light rounded-lg p-4 sm:p-6"
+        className="bg-surface border border-border rounded-lg p-4 sm:p-6"
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}
       >
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">

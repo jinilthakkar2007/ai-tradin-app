@@ -1,85 +1,98 @@
 
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Trade, UserStats } from '../types';
+import { Trade, UserStats, AssetPerformanceData, Prices } from '../types';
 import StatCard from './StatCard';
 import { PlusIcon, CheckCircleIcon, XCircleIcon, ScaleIcon } from './icons/StatIcons';
-
+import AssetPerformanceTable from './AssetPerformanceTable';
 
 interface PortfolioViewProps {
   stats: UserStats;
   activeTrades: Trade[];
   tradeHistory: Trade[];
+  prices: Prices;
 }
 
-const COLORS = ['#1F6FEB', '#238636', '#F7B93E', '#DA3633', '#8B949E', '#A371F7', '#E879F9'];
-
-const PortfolioView: React.FC<PortfolioViewProps> = ({ stats, activeTrades, tradeHistory }) => {
-  
-  const allocationData = useMemo(() => {
-    if (activeTrades.length === 0) return [];
-
-    const allocationMap = new Map<string, number>();
-    let totalValue = 0;
-
-    activeTrades.forEach(trade => {
-      const positionValue = trade.entryPrice * trade.quantity;
-      allocationMap.set(trade.asset, (allocationMap.get(trade.asset) || 0) + positionValue);
-      totalValue += positionValue;
-    });
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const PortfolioView = ({ stats, activeTrades, tradeHistory, prices }: PortfolioViewProps) => {
     
-    if (totalValue === 0) return [];
+  const [sortConfig, setSortConfig] = useState<{ key: keyof AssetPerformanceData; direction: 'asc' | 'desc' } | null>({ key: 'totalPL', direction: 'desc' });
 
-    return Array.from(allocationMap.entries()).map(([name, value]) => ({
-      name,
-      value,
-      percentage: ((value / totalValue) * 100).toFixed(2),
-    }));
-  }, [activeTrades]);
+  const assetPerformanceData = useMemo(() => {
+    const allTrades = [...activeTrades, ...tradeHistory];
+    const performanceMap = new Map<string, any>();
 
-  const portfolioHistoryData = useMemo(() => {
-    if (tradeHistory.length === 0) return [];
-    
-    const sortedHistory = [...tradeHistory].sort((a, b) => new Date(a.closeDate!).getTime() - new Date(b.closeDate!).getTime());
-    let cumulativePL = 0;
-
-    return sortedHistory.map(trade => {
-      const pnl = (trade.closePrice! - trade.entryPrice) * trade.quantity * (trade.direction === 'LONG' ? 1 : -1);
-      cumulativePL += pnl;
-      return {
-        date: new Date(trade.closeDate!).toLocaleDateString(),
-        'Portfolio P/L': parseFloat(cumulativePL.toFixed(2)),
-      };
+    // Initialize map with all assets
+    allTrades.forEach(trade => {
+        if (!performanceMap.has(trade.asset)) {
+            performanceMap.set(trade.asset, {
+                symbol: trade.asset,
+                totalTrades: 0,
+                realizedPL: 0,
+                unrealizedPL: 0,
+                wins: 0,
+                closedTradesCount: 0,
+            });
+        }
     });
-  }, [tradeHistory]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background p-3 border border-background-light rounded-lg shadow-lg">
-          <p className="label text-text-primary font-semibold">{label}</p>
-          <p className="intro tabular-nums text-accent-blue">
-              Portfolio P/L: ${payload[0].value.toLocaleString()}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+    // Populate data
+    allTrades.forEach(trade => {
+        const assetData = performanceMap.get(trade.asset)!;
+        assetData.totalTrades++;
 
-  const AllocationTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-background p-3 border border-background-light rounded-lg shadow-lg">
-          <p className="label text-text-primary font-semibold">{data.name}</p>
-          <p className="intro tabular-nums text-text-secondary">Value: ${data.value.toLocaleString()}</p>
-          <p className="intro tabular-nums text-text-secondary">Allocation: {data.percentage}%</p>
-        </div>
-      );
+        if (trade.status !== 'ACTIVE' && trade.closePrice) { // Realized P/L
+            const pnl = (trade.closePrice - trade.entryPrice) * trade.quantity * (trade.direction === 'LONG' ? 1 : -1);
+            assetData.realizedPL += pnl;
+            if (pnl > 0) {
+                assetData.wins++;
+            }
+            assetData.closedTradesCount++;
+        } else if (trade.status === 'ACTIVE') { // Unrealized P/L
+            const currentPrice = prices[trade.asset] || trade.entryPrice;
+            const unrealizedPnl = (currentPrice - trade.entryPrice) * trade.quantity * (trade.direction === 'LONG' ? 1 : -1);
+            assetData.unrealizedPL += unrealizedPnl;
+        }
+    });
+
+    // Final calculations
+    return Array.from(performanceMap.values()).map((data): AssetPerformanceData => {
+        const totalPL = data.realizedPL + data.unrealizedPL;
+        return {
+            symbol: data.symbol,
+            totalTrades: data.totalTrades,
+            winRate: data.closedTradesCount > 0 ? (data.wins / data.closedTradesCount) * 100 : 0,
+            totalPL,
+            realizedPL: data.realizedPL,
+            unrealizedPL: data.unrealizedPL,
+            avgPL: data.totalTrades > 0 ? totalPL / data.totalTrades : 0,
+        };
+    });
+  }, [activeTrades, tradeHistory, prices]);
+
+  const sortedAssets = useMemo(() => {
+    let sortableItems = [...assetPerformanceData];
+    if (sortConfig !== null) {
+        sortableItems.sort((a, b) => {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
     }
-    return null;
+    return sortableItems;
+  }, [assetPerformanceData, sortConfig]);
+
+  const handleSort = (key: keyof AssetPerformanceData) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
   };
 
   return (
@@ -96,55 +109,15 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ stats, activeTrades, trad
         <StatCard icon={<XCircleIcon />} label="Total Trades" value={stats.totalTrades} />
       </motion.div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.div className="lg:col-span-2 bg-background-surface border border-background-light rounded-lg p-4 sm:p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.5 }}>
-            <h2 className="text-xl font-semibold mb-4">Portfolio Value Over Time</h2>
-            {portfolioHistoryData.length > 0 ? (
-                <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={portfolioHistoryData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#21262D" />
-                        <XAxis dataKey="date" stroke="#8B949E" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#8B949E" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                        <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: '#388BFD', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                        <Line type="monotone" dataKey="Portfolio P/L" stroke="#1F6FEB" strokeWidth={2} dot={false} />
-                    </LineChart>
-                </ResponsiveContainer>
-                </div>
-            ) : (
-                <div className="h-80 flex items-center justify-center text-text-secondary">No closed trades to show historical performance.</div>
-            )}
-        </motion.div>
-
-         <motion.div className="lg:col-span-1 bg-background-surface border border-background-light rounded-lg p-4 sm:p-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}>
-            <h2 className="text-xl font-semibold mb-4">Asset Allocation</h2>
-            {allocationData.length > 0 ? (
-                <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={allocationData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius="80%"
-                                fill="#8884d8"
-                                dataKey="value"
-                                stroke="#161B22"
-                            >
-                                {allocationData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <RechartsTooltip content={<AllocationTooltip />} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-            ) : (
-                <div className="h-80 flex items-center justify-center text-text-secondary">No active trades to show allocation.</div>
-            )}
-        </motion.div>
-      </div>
+      <motion.div 
+        className="lg:col-span-3 bg-surface border border-border rounded-lg p-4 sm:p-6"
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <h2 className="text-xl font-semibold mb-4">Asset Performance Breakdown</h2>
+        <AssetPerformanceTable assets={sortedAssets} onSort={handleSort} sortConfig={sortConfig} />
+      </motion.div>
     </div>
   );
 };

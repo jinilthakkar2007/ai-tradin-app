@@ -10,18 +10,21 @@ interface EditTradeModalProps {
   onClose: () => void;
 }
 
-const backdropVariants = {
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
+const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
 
+// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-const EditTradeModal: React.FC<EditTradeModalProps> = ({ trade, onUpdateTrade, onSimulateOutcome, onClose }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const EditTradeModal = ({ trade, onUpdateTrade, onSimulateOutcome, onClose }: EditTradeModalProps) => {
   const [stopLoss, setStopLoss] = useState(trade.stopLoss.toString());
   const [takeProfits, setTakeProfits] = useState<string[]>(trade.takeProfits.map(tp => tp.price.toString()));
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +113,9 @@ const EditTradeModal: React.FC<EditTradeModalProps> = ({ trade, onUpdateTrade, o
       <motion.div
         className="bg-glass border border-white/10 rounded-lg shadow-2xl w-full max-w-md"
         variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>

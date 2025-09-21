@@ -45,7 +45,8 @@ const NewsItem: React.FC<{ article: NewsArticle; isRelevant: boolean }> = ({ art
   );
 };
 
-const MarketNews: React.FC<MarketNewsProps> = ({ activeTrades }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const MarketNews = ({ activeTrades }: MarketNewsProps) => {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const MAX_NEWS_ITEMS = 7;
 

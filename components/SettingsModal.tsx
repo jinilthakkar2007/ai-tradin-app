@@ -8,18 +8,21 @@ interface SettingsModalProps {
   onSave: (newSettings: UserSettings) => void;
 }
 
-const backdropVariants = {
+// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
+const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
 
+// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose, onSave }) => {
+// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
+const SettingsModal = ({ settings, onClose, onSave }: SettingsModalProps) => {
   const [currentSettings, setCurrentSettings] = useState<UserSettings>(settings);
 
   const handleSave = () => {
@@ -73,6 +76,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onClose, onSave
       <motion.div
         className="bg-glass border border-white/10 rounded-lg shadow-2xl w-full max-w-lg"
         variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-white/10">
