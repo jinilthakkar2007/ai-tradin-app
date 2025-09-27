@@ -1,13 +1,12 @@
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MarketData, Trade, TradeDirection, UserSettings, Prices, PriceAlert } from '../types';
+import { MarketData, Trade, TradeDirection, UserSettings, Prices, PriceAlert, GlobalPriceAlert } from '../types';
 import { tradingViewService } from '../services/tradingViewService';
 import SearchIcon from './icons/SearchIcon';
 import CandlestickChart from './CandlestickChart';
 import OrderBook from './OrderBook';
 import AssetTradeList from './AssetTradeList';
+import BellIcon from './icons/BellIcon';
 
 interface MarketViewProps {
   trades: Trade[];
@@ -20,10 +19,13 @@ interface MarketViewProps {
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
   onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onCloseTrade: (trade: Trade) => void;
   onOpenJournal: (trade: Trade) => void;
+  globalPriceAlerts: GlobalPriceAlert[];
+  onSetGlobalAlert: (asset: MarketData, alert?: GlobalPriceAlert) => void;
+  onDeleteGlobalAlert: (alertId: string) => void;
 }
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
 const MarketView = ({
   trades,
   activeTrades,
@@ -35,9 +37,14 @@ const MarketView = ({
   onEditTrade,
   onDeleteTrade,
   onSetPriceAlert,
-  onOpenJournal
+  onCloseTrade,
+  onOpenJournal,
+  globalPriceAlerts,
+  onSetGlobalAlert,
 }: MarketViewProps) => {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFlashes, setPriceFlashes] = useState<Record<string, 'up' | 'down'>>({});
   const prevMarketDataRef = useRef<MarketData[]>([]);
@@ -48,32 +55,42 @@ const MarketView = ({
   }, [marketData, selectedAssetSymbol]);
 
   useEffect(() => {
-    const initialData = tradingViewService.getMarketData();
-    setMarketData(initialData);
+    try {
+        setError(null);
+        setIsLoading(true);
+        const initialData = tradingViewService.getMarketData();
+        setMarketData(initialData);
 
-    const handleUpdate = (updatedAsset: MarketData) => {
-        setMarketData(currentData => 
-            currentData.map(asset => 
-                asset.symbol === updatedAsset.symbol ? updatedAsset : asset
-            )
-        );
-    };
+        const handleUpdate = (updatedAsset: MarketData) => {
+            setMarketData(currentData => 
+                currentData.map(asset => 
+                    asset.symbol === updatedAsset.symbol ? updatedAsset : asset
+                )
+            );
+        };
 
-    const subscriptions: { symbol: string; handler: (asset: MarketData) => void }[] = [];
-    initialData.forEach(asset => {
-        const handler = (updatedAsset: MarketData) => handleUpdate(updatedAsset);
-        tradingViewService.subscribe(asset.symbol, handler);
-        subscriptions.push({ symbol: asset.symbol, handler });
-    });
-
-    return () => {
-        subscriptions.forEach(({ symbol, handler }) => {
-            tradingViewService.unsubscribe(symbol, handler);
+        const subscriptions: { symbol: string; handler: (asset: MarketData) => void }[] = [];
+        initialData.forEach(asset => {
+            const handler = (updatedAsset: MarketData) => handleUpdate(updatedAsset);
+            tradingViewService.subscribe(asset.symbol, handler);
+            subscriptions.push({ symbol: asset.symbol, handler });
         });
-    };
+
+        return () => {
+            subscriptions.forEach(({ symbol, handler }) => {
+                tradingViewService.unsubscribe(symbol, handler);
+            });
+        };
+    } catch (e) {
+        setError("Failed to load initial market data. Please refresh the page.");
+        console.error(e);
+    } finally {
+        setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
+      if (isLoading) return;
       const flashes: Record<string, 'up' | 'down'> = {};
       const prevPrices = new Map(prevMarketDataRef.current.map(d => [d.symbol, d.price]));
       
@@ -92,7 +109,7 @@ const MarketView = ({
       }
       
       prevMarketDataRef.current = marketData;
-  }, [marketData]);
+  }, [marketData, isLoading]);
 
   const filteredMarketData = useMemo(() => {
     if (!searchTerm) {
@@ -107,11 +124,23 @@ const MarketView = ({
   
   const handleRowClick = (asset: MarketData) => {
     if (selectedAssetSymbol === asset.symbol) {
-      setSelectedAssetSymbol(null); // Toggle off if clicking the same asset
+      setSelectedAssetSymbol(null);
     } else {
       setSelectedAssetSymbol(asset.symbol);
     }
   };
+
+  const SkeletonRow = () => (
+    <tr className="border-b border-border animate-pulse">
+      <td className="px-6 py-4"><div className="h-4 bg-border rounded w-3/4"></div><div className="h-3 bg-border rounded w-1/2 mt-2"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-4 bg-border rounded w-full ml-auto"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-4 bg-border rounded w-3/4 ml-auto"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-4 bg-border rounded w-full ml-auto"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-4 bg-border rounded w-full ml-auto"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-4 bg-border rounded w-1/2 ml-auto"></div></td>
+      <td className="px-6 py-4 text-center"><div className="h-8 bg-border rounded w-full"></div></td>
+    </tr>
+  );
 
   return (
     <div>
@@ -142,7 +171,11 @@ const MarketView = ({
             </tr>
           </thead>
           <tbody>
-            {filteredMarketData.length > 0 ? (
+            {isLoading ? (
+              [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
+            ) : error ? (
+              <tr><td colSpan={7} className="text-center py-12 text-accent-red font-semibold">{error}</td></tr>
+            ) : filteredMarketData.length > 0 ? (
               filteredMarketData.map((asset) => {
                 const isPositive = asset.changePercent >= 0;
                 const changeColor = isPositive ? 'text-accent-green' : 'text-accent-red';
@@ -150,6 +183,7 @@ const MarketView = ({
                 const flash = priceFlashes[asset.symbol];
                 const flashClass = flash === 'up' ? 'bg-accent-green/10' : flash === 'down' ? 'bg-accent-red/10' : '';
                 const isSelected = selectedAssetSymbol === asset.symbol;
+                const activeAlert = globalPriceAlerts.find(a => a.asset === asset.symbol);
 
                 return (
                   <tr
@@ -188,6 +222,14 @@ const MarketView = ({
                               aria-label={`Sell ${asset.symbol}`}
                           >
                               Sell
+                          </motion.button>
+                          <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => onSetGlobalAlert(asset, activeAlert)}
+                              className={`p-2 bg-surface hover:bg-border rounded-md transition-colors ${activeAlert ? 'text-accent-yellow hover:text-accent-yellow' : 'text-text-secondary hover:text-brand'}`}
+                              aria-label={`Set price alert for ${asset.symbol}`}
+                          >
+                              <BellIcon className="h-4 w-4" />
                           </motion.button>
                         </div>
                     </td>
@@ -231,6 +273,7 @@ const MarketView = ({
                   onEditTrade={onEditTrade}
                   onDeleteTrade={onDeleteTrade}
                   onSetPriceAlert={onSetPriceAlert}
+                  onCloseTrade={onCloseTrade}
                   onOpenJournal={onOpenJournal}
                 />
               </div>

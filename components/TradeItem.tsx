@@ -8,6 +8,7 @@ import TrashIcon from './icons/TrashIcon';
 import BellIcon from './icons/BellIcon';
 import JournalIcon from './icons/JournalIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import DoorExitIcon from './icons/DoorExitIcon';
 import TradeDetails from './TradeDetails';
 
 interface TradeItemProps {
@@ -16,6 +17,7 @@ interface TradeItemProps {
   onEditTrade?: (trade: Trade) => void;
   onDeleteTrade?: (tradeId: string) => void;
   onSetPriceAlert?: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onCloseTrade?: (trade: Trade) => void;
   onOpenJournal?: (trade: Trade) => void;
   isSelected?: boolean;
   onToggleSelect?: (tradeId: string) => void;
@@ -35,8 +37,8 @@ const alertFormVariants: Variants = {
   exit: { opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const TradeItem = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, isSelected, onToggleSelect }: TradeItemProps) => {
+// FIX: Changed component to React.FC to resolve issue with passing the 'key' prop.
+const TradeItem: React.FC<TradeItemProps> = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPriceAlert, onCloseTrade, onOpenJournal, isSelected, onToggleSelect }) => {
   const { asset, direction, entryPrice, stopLoss, takeProfits, status, closePrice, priceAlert, journal } = trade;
   const isLong = direction === 'LONG';
   const isHistory = status !== 'ACTIVE';
@@ -182,7 +184,7 @@ const TradeItem = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPrice
                             {profitLoss >= 0 ? '+' : ''}{profitLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                         </div>
                         <div className={`text-sm font-semibold ${pnlColor}`}>
-                            {profitLossPercentage.toFixed(2)}%
+                            {profitLossPercentage >= 0 ? '+' : ''}{profitLossPercentage.toFixed(2)}%
                         </div>
                     </div>
                     {/* Action buttons are positioned absolutely within this relative container */}
@@ -198,6 +200,11 @@ const TradeItem = ({ trade, currentPrice, onEditTrade, onDeleteTrade, onSetPrice
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); onOpenJournal(trade);}} className="p-2 bg-white/5 rounded-full text-text-secondary hover:bg-brand hover:text-white transition-all relative" aria-label="Open Trade Journal" title={`Journal (${journalEntryCount} entries)`}>
                                     <JournalIcon />
                                     {journalEntryCount > 0 && ( <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">{journalEntryCount}</span> )}
+                                </motion.button>
+                            )}
+                            {!isHistory && onCloseTrade && (
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); onCloseTrade(trade);}} className="p-2 bg-white/5 rounded-full text-text-secondary hover:bg-brand hover:text-white transition-all" aria-label="Manually Close Trade" title="Manually Close Trade">
+                                    <DoorExitIcon />
                                 </motion.button>
                             )}
                             {!isHistory && onSetPriceAlert && (

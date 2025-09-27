@@ -1,3 +1,5 @@
+
+
 import React, { useMemo } from 'react';
 import { Trade, TradeStatus, TradeDirection } from '../types';
 
@@ -43,7 +45,8 @@ const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterCh
     // --- Status Counts ---
     // Count statuses based on trades filtered by direction and asset
     const tradesForStatusCount = trades.filter(filterByDirection).filter(filterByAsset);
-    const statusCounts: Record<TradeStatus | 'ALL', number> = {
+    // FIX: Let TypeScript infer the specific type for statusCounts. This is more type-safe and resolves the indexing issue.
+    const statusCounts = {
       ALL: tradesForStatusCount.length,
       ACTIVE: tradesForStatusCount.filter(t => t.status === 'ACTIVE').length,
       CLOSED_TP: tradesForStatusCount.filter(t => t.status === 'CLOSED_TP').length,
@@ -53,7 +56,8 @@ const TradeFilters: React.FC<TradeFiltersProps> = ({ trades, filters, onFilterCh
     // --- Direction Counts ---
     // Count directions based on trades filtered by status and asset
     const tradesForDirectionCount = trades.filter(filterByStatus).filter(filterByAsset);
-    const directionCounts: Record<TradeDirection | 'ALL', number> = {
+    // FIX: Let TypeScript infer the specific type for directionCounts. This is more type-safe and resolves the indexing issue.
+    const directionCounts = {
       ALL: tradesForDirectionCount.length,
       LONG: tradesForDirectionCount.filter(t => t.direction === 'LONG').length,
       SHORT: tradesForDirectionCount.filter(t => t.direction === 'SHORT').length,

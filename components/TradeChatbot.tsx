@@ -90,10 +90,10 @@ const TradeChatbot: React.FC<TradeChatbotProps> = ({ onAddTrade }) => {
             setStep('PROCESSING');
             addMessage('bot', "Analyzing...");
 
-            const result = await getAITradeAnalysis(query);
-
-            if (result) {
+            try {
+                const result = await getAITradeAnalysis(query);
                 let botResponse = result.analysis;
+
                 if (result.setup) {
                     const { direction, entryPrice, stopLoss, takeProfits: tpPrices, asset } = result.setup;
                     const finalTPs = tpPrices.map((price, i) => ({ level: i + 1, price, hit: false as const }));
@@ -114,8 +114,9 @@ What **quantity** would you like to use for this trade? Or you can type **'cance
                     replaceLastBotMessage(botResponse);
                     setStep('AWAITING_USER_INPUT');
                 }
-            } else {
-                replaceLastBotMessage("Sorry, I couldn't process that request. Please try again.");
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : "Sorry, I couldn't process that request. Please try again.";
+                replaceLastBotMessage(errorMessage);
                 setStep('AWAITING_USER_INPUT');
             }
         }

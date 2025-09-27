@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-// FIX: Corrected CrosshairMovedEventParams to MouseEventParams, which is the correct exported type.
-import { createChart, ISeriesApi, CandlestickData as LWChartData, ColorType, Time, LineData, PriceScaleMode, IChartApi, MouseEventParams } from 'lightweight-charts';
+import * as LightweightCharts from 'lightweight-charts';
 import { generateCandlestickData, Timeframe } from '../services/chartDataService';
 import { calculateMA, calculateRSI } from '../services/indicatorService';
 import { UserSettings } from '../types';
@@ -13,7 +12,7 @@ interface CandlestickChartProps {
 
 interface LegendData {
   time: string;
-  ohlc: LWChartData;
+  ohlc: LightweightCharts.CandlestickData;
   ma?: number;
   rsi?: number;
 }
@@ -44,10 +43,10 @@ const DataLegend: React.FC<{ data: LegendData | null, assetSymbol: string, maPer
 
 const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSettings }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const maSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const rsiSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
+  const seriesRef = useRef<LightweightCharts.ISeriesApi<'Candlestick'> | null>(null);
+  const maSeriesRef = useRef<LightweightCharts.ISeriesApi<'Line'> | null>(null);
+  const rsiSeriesRef = useRef<LightweightCharts.ISeriesApi<'Line'> | null>(null);
   
   const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('1D');
   const [showMA, setShowMA] = useState(userSettings.chart.defaultMA);
@@ -55,7 +54,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
   const [maPeriod, setMaPeriod] = useState(userSettings.chart.maPeriod);
   const [rsiPeriod, setRsiPeriod] = useState(userSettings.chart.rsiPeriod);
   const [legendData, setLegendData] = useState<LegendData | null>(null);
-  const [chartData, setChartData] = useState<LWChartData[]>([]);
+  const [chartData, setChartData] = useState<LightweightCharts.CandlestickData[]>([]);
 
   const chartHeight = 400;
   const rsiPaneHeight = 100;
@@ -71,8 +70,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: { background: { type: ColorType.Solid, color: '#0D1117' }, textColor: '#8B949E' },
+    const chart = LightweightCharts.createChart(chartContainerRef.current, {
+      layout: { background: { type: LightweightCharts.ColorType.Solid, color: '#0D1117' }, textColor: '#8B949E' },
       grid: { vertLines: { color: '#161B22' }, horzLines: { color: '#161B22' } },
       width: chartContainerRef.current.clientWidth,
       height: chartHeight,
@@ -86,33 +85,32 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
     });
     chartRef.current = chart;
     
-    // FIX: Cast to 'any' to work around a TypeScript error where series creation methods are not found on IChartApi. This is likely due to a type definition issue in the environment.
-    seriesRef.current = (chart as any).addCandlestickSeries({
+    seriesRef.current = chart.addCandlestickSeries({
       upColor: '#238636', downColor: '#DA3633', borderDownColor: '#DA3633', borderUpColor: '#238636', wickDownColor: '#DA3633', wickUpColor: '#238636',
     });
     
-    maSeriesRef.current = (chart as any).addLineSeries({ color: '#1F6FEB', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false, lineStyle: 0, visible: false });
+    maSeriesRef.current = chart.addLineSeries({ color: '#1F6FEB', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false, lineStyle: 0, visible: false });
 
-    rsiSeriesRef.current = (chart as any).addLineSeries({
+    rsiSeriesRef.current = chart.addLineSeries({
         color: '#FFC107', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false,
         priceScaleId: 'rsi',
         visible: false,
     });
     chart.priceScale('rsi').applyOptions({
         scaleMargins: { top: 0.8, bottom: 0 },
-        mode: PriceScaleMode.Normal,
+        mode: LightweightCharts.PriceScaleMode.Normal,
         borderVisible: false,
     });
     
     // Subscribe to crosshair move to update legend
-    chart.subscribeCrosshairMove((param: MouseEventParams) => {
+    chart.subscribeCrosshairMove((param: LightweightCharts.MouseEventParams) => {
         if (!param.time || !param.seriesData.size) {
             setLegendData(null);
             return;
         }
-        const ohlc = param.seriesData.get(seriesRef.current!) as LWChartData | undefined;
-        const ma = param.seriesData.get(maSeriesRef.current!) as LineData | undefined;
-        const rsi = param.seriesData.get(rsiSeriesRef.current!) as LineData | undefined;
+        const ohlc = param.seriesData.get(seriesRef.current!) as LightweightCharts.CandlestickData | undefined;
+        const ma = param.seriesData.get(maSeriesRef.current!) as LightweightCharts.LineData | undefined;
+        const rsi = param.seriesData.get(rsiSeriesRef.current!) as LightweightCharts.LineData | undefined;
 
         if (ohlc) {
             setLegendData({
@@ -141,8 +139,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ assetSymbol, userSe
     if (!seriesRef.current || !maSeriesRef.current || !rsiSeriesRef.current) return;
 
     const candlestickData = generateCandlestickData(assetSymbol, activeTimeframe, 200);
-    const formattedData = candlestickData.map(d => ({ ...d, time: d.time as Time }));
-    setChartData(formattedData as LWChartData[]); // Save data for export
+    const formattedData = candlestickData.map(d => ({ ...d, time: d.time as LightweightCharts.Time }));
+    setChartData(formattedData as LightweightCharts.CandlestickData[]); // Save data for export
     seriesRef.current.setData(formattedData);
 
     // Update indicators

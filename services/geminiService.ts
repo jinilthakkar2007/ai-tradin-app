@@ -1,11 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Trade, OrderBookData } from "./types";
+import { Trade, OrderBookData, UserStats, Prices, TradeActionSuggestion } from "./types";
+import { MOCK_SENTIMENT_HEADLINES } from "../constants";
 
 // Always use new GoogleGenAI({apiKey: process.env.API_KEY});
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
  * Generates AI commentary for a closed trade.
+ * @throws Will throw an error if the API call fails.
  */
 export const getAICommentary = async (trade: Trade): Promise<string> => {
   if (!trade.closePrice || !trade.closeDate) {
@@ -42,7 +44,6 @@ export const getAICommentary = async (trade: Trade): Promise<string> => {
   `;
 
   try {
-    // Correct API call as per guidelines
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -53,17 +54,20 @@ export const getAICommentary = async (trade: Trade): Promise<string> => {
       },
     });
 
-    // Correct way to extract text, now with a safety check
     const text = response.text;
-    return text ? text.trim() : "Could not generate AI commentary at this time.";
+    if (!text) {
+      throw new Error("Received an empty response from the AI service.");
+    }
+    return text.trim();
   } catch (error) {
     console.error("Error fetching AI commentary:", error);
-    return "Could not generate AI commentary at this time.";
+    throw new Error("Failed to generate AI commentary. The AI service may be temporarily unavailable.");
   }
 };
 
 /**
  * Analyzes a user's natural language query to provide market analysis or a trade setup.
+ * @throws Will throw an error if the API call fails.
  */
 export const getAITradeAnalysis = async (query: string) => {
   const prompt = `You are a trading assistant AI. Analyze the user's request and provide either a general market analysis or a specific trade setup.
@@ -124,36 +128,41 @@ export const getAITradeAnalysis = async (query: string) => {
     if (!jsonText) {
         throw new Error("Received empty response from AI for trade analysis.");
     }
-    // The response is a JSON string, parse it.
     const result = JSON.parse(jsonText.trim());
     result.analysis += "\n\n**Disclaimer:** This is AI-generated analysis and not financial advice.";
     return result;
 
   } catch (error) {
     console.error("Error fetching AI trade analysis:", error);
-    return null;
+    throw new Error("Failed to process your request with the AI service. Please try again.");
   }
 };
 
 // --- Rate limiting for getAIOrderBookAnalysis ---
 let lastOrderBookAnalysisTimestamp = 0;
-let isFetchingOrderBookAnalysis = false; // Add a lock to prevent concurrent requests
-const ORDER_BOOK_ANALYSIS_COOLDOWN_MS = 12000; // 12 seconds cooldown for safety
+let isFetchingOrderBookAnalysis = false;
+const ORDER_BOOK_ANALYSIS_COOLDOWN_MS = 12000;
+
+type OrderBookAnalysisResult = 
+  | { success: true; message: string }
+  | { success: false; message: string; isCooldown: boolean };
+
 
 /**
  * Generates AI analysis of an order book, with client-side rate limiting and a concurrency lock.
+ * Returns a structured object indicating success or failure.
  */
-export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBookData): Promise<string> => {
+export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBookData): Promise<OrderBookAnalysisResult> => {
   if (isFetchingOrderBookAnalysis) {
     console.warn("AI Order Book Analysis request blocked due to an ongoing request.");
-    return "An analysis is already in progress. Please wait a moment.";
+    return { success: false, message: "An analysis is already in progress. Please wait a moment.", isCooldown: true };
   }
 
   const now = Date.now();
   if (now - lastOrderBookAnalysisTimestamp < ORDER_BOOK_ANALYSIS_COOLDOWN_MS) {
     const timeLeft = Math.ceil((ORDER_BOOK_ANALYSIS_COOLDOWN_MS - (now - lastOrderBookAnalysisTimestamp)) / 1000);
     console.warn(`AI Order Book Analysis request throttled. Please wait ${timeLeft}s.`);
-    return `To prevent rate-limiting, please wait ${timeLeft} more seconds before requesting another analysis.`;
+    return { success: false, message: `To prevent rate-limiting, please wait ${timeLeft} more seconds before requesting another analysis.`, isCooldown: true };
   }
 
   const totalBidVolume = orderBook.bids.reduce((sum, bid) => sum + bid.quantity, 0);
@@ -172,7 +181,7 @@ export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBook
   `;
 
   try {
-    isFetchingOrderBookAnalysis = true; // Set lock
+    isFetchingOrderBookAnalysis = true;
     lastOrderBookAnalysisTimestamp = Date.now();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -184,11 +193,216 @@ export const getAIOrderBookAnalysis = async (asset: string, orderBook: OrderBook
     });
 
     const text = response.text;
-    return text ? text.trim() : "Could not generate AI analysis at this time.";
+    return { success: true, message: text ? text.trim() : "Could not generate AI analysis at this time." };
   } catch (error) {
     console.error("Error fetching AI order book analysis:", error);
-    return "Could not generate AI analysis at this time due to an API error.";
+    return { success: false, message: "Could not generate AI analysis due to an API error.", isCooldown: false };
   } finally {
-    isFetchingOrderBookAnalysis = false; // Release lock
+    isFetchingOrderBookAnalysis = false;
   }
+};
+
+// --- AI Co-Pilot Services ---
+
+export const getMarketSentiment = async (): Promise<{ sentiment: 'Bullish' | 'Neutral' | 'Bearish'; summary: string }> => {
+  const prompt = `
+    Analyze these simulated market headlines and determine the overall sentiment: Bullish, Neutral, or Bearish. 
+    Provide a 2-sentence summary explaining your reasoning.
+    
+    Headlines:
+    - ${MOCK_SENTIMENT_HEADLINES.join("\n- ")}
+  `;
+
+  const responseSchema = {
+    type: Type.OBJECT,
+    properties: {
+      sentiment: { type: Type.STRING, enum: ['Bullish', 'Neutral', 'Bearish'] },
+      summary: { type: Type.STRING },
+    },
+  };
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
+      },
+    });
+    const jsonText = response.text;
+    return JSON.parse(jsonText.trim());
+  } catch (error) {
+    console.error("Error fetching market sentiment:", error);
+    throw new Error("Failed to fetch market sentiment.");
+  }
+};
+
+export const getPersonalizedTradeIdeas = async (stats: UserStats, activeTrades: Trade[]): Promise<{ asset: string, direction: 'LONG' | 'SHORT', confidence: number, rationale: string }[]> => {
+    const preferredAssets = Array.from(new Set(activeTrades.map(t => t.asset))).join(', ') || 'None';
+    const prompt = `
+        You are a trading co-pilot. Based on this trader's stats and the current (simulated) bullish market sentiment, generate 2 personalized and actionable trade ideas. 
+        Trader's Stats:
+        - Win Rate: ${stats.winRate}%
+        - Total Trades: ${stats.totalTrades}
+        - Currently trading: ${preferredAssets}
+        
+        For each idea, provide a confidence score from 60-95% and a concise rationale. Do not use markdown.
+        Focus on assets the user is already trading if possible, otherwise suggest common assets like BTC/USD or NVDA.
+    `;
+    
+    const responseSchema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                asset: { type: Type.STRING },
+                direction: { type: Type.STRING, enum: ['LONG', 'SHORT'] },
+                confidence: { type: Type.INTEGER },
+                rationale: { type: Type.STRING },
+            }
+        }
+    };
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            },
+        });
+        const jsonText = response.text;
+        return JSON.parse(jsonText.trim());
+    } catch (error) {
+        console.error("Error fetching personalized trade ideas:", error);
+        throw new Error("Failed to generate trade ideas.");
+    }
+};
+
+export const getPortfolioAnalysis = async (activeTrades: Trade[]): Promise<{ score: number, analysis: string }> => {
+    if (activeTrades.length === 0) {
+        return { score: 10, analysis: "Your portfolio is clear! No active trades means no concentrated risk. Ready to look for the next opportunity." };
+    }
+    const prompt = `
+        Analyze this trader's active portfolio. Calculate a 'Portfolio Health Score' from 1 to 10 (1=very poor, 10=excellent) based on diversification, risk concentration, and correlation. 
+        Provide a 2-3 sentence summary with one key recommendation.
+        
+        Active Trades:
+        ${JSON.stringify(activeTrades.map(t => ({ asset: t.asset, direction: t.direction, quantity: t.quantity, entry: t.entryPrice })))}
+    `;
+
+    const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+            score: { type: Type.INTEGER },
+            analysis: { type: Type.STRING },
+        }
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            },
+        });
+        const jsonText = response.text;
+        return JSON.parse(jsonText.trim());
+    } catch (error) {
+        console.error("Error fetching portfolio analysis:", error);
+        throw new Error("Failed to analyze portfolio.");
+    }
+};
+
+export const getPerformanceTip = async (stats: UserStats): Promise<string> => {
+    const prompt = `
+        Analyze these user trading stats and provide a single, actionable tip to help them improve. Keep it under 25 words and start with an emoji.
+        
+        Stats:
+        - Win Rate: ${stats.winRate}%
+        - Profit Factor: ${stats.profitFactor}
+        - Average Win: $${stats.avgWin}
+        - Average Loss: $${stats.avgLoss}
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+             config: { maxOutputTokens: 60 }
+        });
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error fetching performance tip:", error);
+        throw new Error("Failed to generate performance tip.");
+    }
+};
+
+export const getTradeActionSuggestions = async (activeTrades: Trade[], prices: Prices): Promise<TradeActionSuggestion[]> => {
+    if (activeTrades.length === 0) {
+        return [];
+    }
+
+    const tradesWithContext = activeTrades.map(t => ({
+        id: t.id,
+        asset: t.asset,
+        direction: t.direction,
+        entryPrice: t.entryPrice,
+        stopLoss: t.stopLoss,
+        takeProfits: t.takeProfits,
+        currentPrice: prices[t.asset] || t.entryPrice,
+    }));
+
+    const prompt = `
+        You are a proactive trading co-pilot. Analyze the following portfolio of active trades given their current market prices. Identify trades that might require immediate attention and suggest a single, clear action for each.
+
+        Your analysis should consider:
+        1.  **Profit Taking**: If a trade has significant unrealized profit (e.g., over 70% of the way to its first take-profit) and might be near a reversal point (you can simulate this assumption), suggest closing it to secure gains.
+        2.  **Risk Management**: If a trade is approaching its stop-loss (e.g., over 70% of the way there) and market momentum seems against it, suggest closing it early to mitigate losses.
+        3.  **Capital Protection**: If a trade is in profit, suggest adjusting the stop-loss to the entry price (break-even) to eliminate risk.
+
+        For each suggestion, you MUST provide:
+        - \`tradeId\`: The ID of the trade.
+        - \`action\`: One of 'CLOSE', 'ADJUST_SL'.
+        - \`reasoning\`: A concise, user-friendly explanation for your suggestion.
+        - \`suggestedPrice\` (ONLY for 'ADJUST_SL'): The new stop-loss price, which should be the trade's original entry price.
+
+        Current active trades:
+        ${JSON.stringify(tradesWithContext)}
+
+        Return your response as a JSON array matching the provided schema. Only include trades that you have a high-confidence suggestion for. If no trades require action, return an empty array.
+    `;
+
+    const responseSchema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                tradeId: { type: Type.STRING },
+                action: { type: Type.STRING, enum: ['CLOSE', 'ADJUST_SL'] },
+                reasoning: { type: Type.STRING },
+                suggestedPrice: { type: Type.NUMBER, nullable: true },
+            }
+        }
+    };
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            },
+        });
+        const jsonText = response.text;
+        return JSON.parse(jsonText.trim());
+    } catch (error) {
+        console.error("Error fetching trade action suggestions:", error);
+        throw new Error("Failed to generate proactive suggestions.");
+    }
 };

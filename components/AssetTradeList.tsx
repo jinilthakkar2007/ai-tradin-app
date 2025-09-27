@@ -12,11 +12,12 @@ interface AssetTradeListProps {
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
   onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onCloseTrade: (trade: Trade) => void;
   onOpenJournal: (trade: Trade) => void;
 }
 
 // FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const AssetTradeList = ({ assetSymbol, trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal }: AssetTradeListProps) => {
+const AssetTradeList = ({ assetSymbol, trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onCloseTrade, onOpenJournal }: AssetTradeListProps) => {
   const assetTrades = trades.filter(t => t.asset === assetSymbol);
   const active = assetTrades.filter(t => t.status === 'ACTIVE').sort((a,b) => new Date(b.openDate).getTime() - new Date(a.openDate).getTime());
   const history = assetTrades.filter(t => t.status !== 'ACTIVE').sort((a,b) => new Date(b.closeDate!).getTime() - new Date(a.closeDate!).getTime());
@@ -43,6 +44,7 @@ const AssetTradeList = ({ assetSymbol, trades, prices, onEditTrade, onDeleteTrad
                     onEditTrade={onEditTrade}
                     onDeleteTrade={onDeleteTrade}
                     onSetPriceAlert={onSetPriceAlert}
+                    onCloseTrade={onCloseTrade}
                     onOpenJournal={onOpenJournal}
                 />
             ))}

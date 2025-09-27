@@ -1,5 +1,5 @@
-
-export type View = 'dashboard' | 'history' | 'alerts' | 'chatbot' | 'market' | 'strategy' | 'portfolio' | 'backtesting' | 'copy-trading';
+// FIX: Removed a self-referential import of the 'Trade' type, which is defined within this file.
+export type View = 'copilot' | 'dashboard' | 'history' | 'alerts' | 'chatbot' | 'market' | 'strategy' | 'portfolio' | 'backtesting' | 'copy-trading';
 
 export interface TakeProfit {
   level: number;
@@ -103,6 +103,7 @@ export interface UserSettings {
         tradeAlerts: boolean;
         aiCommentary: boolean;
         marketNews: boolean;
+        soundAlerts: boolean;
     };
     chart: {
         defaultMA: boolean;
@@ -155,4 +156,11 @@ export interface AssetPerformanceData {
   realizedPL: number;
   unrealizedPL: number;
   avgPL: number;
+}
+
+export interface TradeActionSuggestion {
+  tradeId: string;
+  action: 'CLOSE' | 'ADJUST_SL';
+  reasoning: string;
+  suggestedPrice?: number; // For ADJUST_SL or ADJUST_TP
 }

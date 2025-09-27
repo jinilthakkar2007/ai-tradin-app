@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ProTrader } from '../types';
@@ -15,8 +16,8 @@ const Stat: React.FC<{ label: string, value: string, color?: string }> = ({ labe
     </div>
 );
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const ProTraderCard = ({ trader, isCopying, onToggleCopy }: ProTraderCardProps) => {
+// FIX: Changed component to React.FC to resolve issue with passing the 'key' prop.
+const ProTraderCard: React.FC<ProTraderCardProps> = ({ trader, isCopying, onToggleCopy }) => {
 
     const getRiskColor = (risk: 'Low' | 'Medium' | 'High') => {
         switch (risk) {

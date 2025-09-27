@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Alert } from '../types';
@@ -15,8 +16,8 @@ const toastVariants: Variants = {
     exit: { opacity: 0, x: 50, scale: 0.8, transition: { duration: 0.3, ease: 'easeOut' } }
 };
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const Toast = ({ alert, onDismiss, onShowAlert }: ToastProps) => {
+// FIX: Changed component to React.FC to resolve issue with passing the 'key' prop.
+const Toast: React.FC<ToastProps> = ({ alert, onDismiss, onShowAlert }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onDismiss(alert.id);

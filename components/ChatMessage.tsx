@@ -1,3 +1,4 @@
+
 import React from 'react';
 // FIX: Import Variants to correctly type the animation variants.
 import { motion, Variants } from 'framer-motion';
@@ -31,8 +32,8 @@ const ThinkingIndicator: React.FC = () => {
 };
 
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const ChatMessage = ({ message }: ChatMessageProps) => {
+// FIX: Changed component to React.FC to resolve issue with passing the 'key' prop.
+const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isBot = message.sender === 'bot';
   const isThinking = message.text === 'Analyzing...';
 

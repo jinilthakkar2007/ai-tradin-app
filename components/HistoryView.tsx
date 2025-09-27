@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trade } from '../types';
@@ -36,7 +37,8 @@ const HistoryView = ({ tradeHistory, onOpenJournal, onDeleteTrades }: HistoryVie
   };
 
   const handleDeleteSelected = () => {
-    const idsToDelete = Array.from(selectedTradeIds);
+    // FIX: Use the spread operator to convert the Set to an array. This correctly infers the type as string[] and avoids a TypeScript error.
+    const idsToDelete = [...selectedTradeIds];
     if (idsToDelete.length === 0) return;
 
     if (window.confirm(`Are you sure you want to permanently delete ${idsToDelete.length} trade(s)? This action cannot be undone.`)) {

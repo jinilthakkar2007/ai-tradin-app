@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { UserSettings } from '../types';
@@ -111,6 +112,7 @@ const SettingsModal = ({ settings, onClose, onSave }: SettingsModalProps) => {
               <Toggle label="TP/SL Hit Alerts" isChecked={currentSettings.notifications.tradeAlerts} onChange={(val) => handleCheckboxChange('notifications', 'tradeAlerts', val)} />
               <Toggle label="AI Commentary Ready" isChecked={currentSettings.notifications.aiCommentary} onChange={(val) => handleCheckboxChange('notifications', 'aiCommentary', val)} />
               <Toggle label="Market News Updates" isChecked={currentSettings.notifications.marketNews} onChange={(val) => handleCheckboxChange('notifications', 'marketNews', val)} />
+              <Toggle label="Sound for Alerts" isChecked={currentSettings.notifications.soundAlerts} onChange={(val) => handleCheckboxChange('notifications', 'soundAlerts', val)} />
             </div>
           </section>
 

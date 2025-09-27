@@ -11,6 +11,7 @@ interface TradeListProps {
   onEditTrade?: (trade: Trade) => void;
   onDeleteTrade?: (tradeId: string) => void;
   onSetPriceAlert?: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onCloseTrade?: (trade: Trade) => void;
   onOpenJournal?: (trade: Trade) => void;
   onToggleSelect?: (tradeId: string) => void;
   selectedTradeIds?: Set<string>;
@@ -49,7 +50,7 @@ const itemVariants: Variants = {
 };
 
 // FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
-const TradeList = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onOpenJournal, onToggleSelect, selectedTradeIds }: TradeListProps) => {
+const TradeList = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert, onCloseTrade, onOpenJournal, onToggleSelect, selectedTradeIds }: TradeListProps) => {
   if (trades.length === 0) {
     return (
       <div className="text-center py-16 px-6 bg-surface border-2 border-dashed border-border rounded-xl">
@@ -78,6 +79,7 @@ const TradeList = ({ trades, prices, onEditTrade, onDeleteTrade, onSetPriceAlert
             onEditTrade={onEditTrade}
             onDeleteTrade={onDeleteTrade}
             onSetPriceAlert={onSetPriceAlert}
+            onCloseTrade={onCloseTrade}
             onOpenJournal={onOpenJournal}
             isSelected={selectedTradeIds?.has(trade.id)}
             onToggleSelect={onToggleSelect}

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { Alert, Trade } from '../types';
@@ -12,58 +10,63 @@ interface AlertModalProps {
   onCommentaryFetched: (alertId: string, commentary: string) => void;
 }
 
-// FIX: Explicitly type backdropVariants with the Variants type from framer-motion.
 const backdropVariants: Variants = {
   visible: { opacity: 1 },
   hidden: { opacity: 0 },
 };
 
-// FIX: Explicitly type modalVariants with the Variants type from framer-motion.
 const modalVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } },
   exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: 'easeIn' } },
 };
 
-// FIX: Refactored from React.FC to a standard function component to fix framer-motion prop type errors.
 const AlertModal = ({ alert, onClose, trades, onCommentaryFetched }: AlertModalProps) => {
   const isSuccess = alert.type === 'success';
-  const [commentary, setCommentary] = useState(alert.aiCommentary ?? 'Generating AI analysis...');
+  const [commentary, setCommentary] = useState(alert.aiCommentary ?? '');
+  const [loadingCommentary, setLoadingCommentary] = useState(!alert.aiCommentary);
+  const [commentaryError, setCommentaryError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If commentary already exists in the prop, ensure our state is synced and do nothing else.
-    if (alert.aiCommentary !== undefined) {
+    if (alert.aiCommentary) {
       setCommentary(alert.aiCommentary);
+      setLoadingCommentary(false);
       return;
     }
     
-    // Do not fetch for system alerts.
-    if (alert.tradeId === 'system') {
-        setCommentary('No commentary available for system alerts.');
+    if (alert.tradeId === 'system-global') {
+        setCommentary('No commentary available for global price alerts.');
+        setLoadingCommentary(false);
         return;
     }
 
     let isCancelled = false;
 
     const fetchCommentary = async () => {
+      setLoadingCommentary(true);
+      setCommentaryError(null);
       const relevantTrade = trades.find(t => t.id === alert.tradeId);
-      let newCommentary: string;
 
       if (!relevantTrade) {
-        newCommentary = "Could not find associated trade to generate analysis.";
-      } else {
-        try {
-          // The service handles checking if the trade is closed.
-          newCommentary = await getAICommentary(relevantTrade);
-        } catch (error) {
-          console.error("Failed to fetch AI commentary in modal:", error);
-          newCommentary = "Could not generate AI analysis at this time.";
-        }
+        setCommentaryError("Could not find associated trade to generate analysis.");
+        setLoadingCommentary(false);
+        return;
       }
 
-      if (!isCancelled) {
-        setCommentary(newCommentary);
-        onCommentaryFetched(alert.id, newCommentary);
+      try {
+        const newCommentary = await getAICommentary(relevantTrade);
+        if (!isCancelled) {
+          setCommentary(newCommentary);
+          onCommentaryFetched(alert.id, newCommentary);
+        }
+      } catch (error) {
+        if (!isCancelled && error instanceof Error) {
+          setCommentaryError(error.message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingCommentary(false);
+        }
       }
     };
 
@@ -73,7 +76,6 @@ const AlertModal = ({ alert, onClose, trades, onCommentaryFetched }: AlertModalP
       isCancelled = true;
     };
   }, [alert.id, alert.tradeId, alert.aiCommentary, trades, onCommentaryFetched]);
-
 
   return (
     <motion.div 
@@ -112,10 +114,19 @@ const AlertModal = ({ alert, onClose, trades, onCommentaryFetched }: AlertModalP
           </div>
           <div className="mt-4 pt-4 border-t border-white/10">
             <h4 className="text-sm font-semibold text-brand mb-2">🤖 AI Commentary</h4>
-            <div className="bg-surface p-4 rounded-md border border-border">
-              <p className="text-text-secondary whitespace-pre-wrap font-mono text-sm">
-                {commentary || 'No commentary available.'}
-              </p>
+            <div className="bg-surface p-4 rounded-md border border-border min-h-[6rem] flex items-center justify-center">
+              {loadingCommentary ? (
+                <div className="flex items-center gap-2 text-text-secondary">
+                    <div className="w-4 h-4 border-2 border-t-brand border-border rounded-full animate-spin"></div>
+                    <span>Generating AI analysis...</span>
+                </div>
+              ) : commentaryError ? (
+                  <p className="text-sm text-accent-red text-center">{commentaryError}</p>
+              ) : (
+                <p className="text-text-secondary whitespace-pre-wrap font-mono text-sm">
+                  {commentary}
+                </p>
+              )}
             </div>
           </div>
         </div>

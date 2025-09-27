@@ -1,11 +1,14 @@
+
 import { useState, useEffect, useRef } from 'react';
-import { Trade, Prices, MarketData } from '../types';
+import { Trade, Prices, MarketData, GlobalPriceAlert } from '../types';
 import { tradingViewService } from '../services/tradingViewService';
 
 export const useTradeMonitor = (
   activeTrades: Trade[],
   onTrigger: (trade: Trade, status: 'CLOSED_TP' | 'CLOSED_SL', price: number) => void,
-  onCustomAlert: (trade: Trade) => void
+  onCustomAlert: (trade: Trade) => void,
+  globalPriceAlerts: GlobalPriceAlert[],
+  onGlobalAlertTrigger: (alert: GlobalPriceAlert) => void
 ) => {
   const [prices, setPrices] = useState<Prices>({});
   const triggeredTradesRef = useRef<Set<string>>(new Set());
@@ -14,7 +17,9 @@ export const useTradeMonitor = (
     // Reset triggered trades when active trades change, e.g., a trade is deleted or added.
     triggeredTradesRef.current = new Set();
     const tradeSymbols = activeTrades.map(trade => trade.asset);
-    const allSymbols = Array.from(new Set(tradeSymbols));
+    const globalAlertSymbols = globalPriceAlerts.map(alert => alert.asset);
+    const allSymbols = Array.from(new Set([...tradeSymbols, ...globalAlertSymbols]));
+
 
     // Initialize prices for all monitored assets
     const initialPrices: Prices = {};
@@ -56,6 +61,21 @@ export const useTradeMonitor = (
             return; // A trade is closed once one of its conditions is met
         }
       });
+      
+      // Check for global price alerts
+      globalPriceAlerts.forEach(alert => {
+          if (alert.asset !== assetSymbol) return;
+
+          const conditionMet =
+              (alert.condition === 'ABOVE' && newPrice >= alert.price) ||
+              (alert.condition === 'BELOW' && newPrice <= alert.price);
+
+          if (conditionMet) {
+              onGlobalAlertTrigger(alert);
+              // The alert will be removed from the list in App.tsx,
+              // so no need to manage a triggered set here for global alerts.
+          }
+      });
     };
 
     const subscriptions: { symbol: string; handler: (asset: MarketData) => void }[] = [];
@@ -73,7 +93,7 @@ export const useTradeMonitor = (
         tradingViewService.unsubscribe(symbol, handler);
       });
     };
-  }, [activeTrades, onTrigger, onCustomAlert]);
+  }, [activeTrades, onTrigger, onCustomAlert, globalPriceAlerts, onGlobalAlertTrigger]);
 
   return { prices };
 };

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 
 // --- IMPORTANT SETUP ---
@@ -8,7 +7,7 @@ import React, { useEffect, useRef } from 'react';
 // 3. Create an "OAuth 2.0 Client ID" for a "Web application".
 // 4. Add your app's origin to the "Authorized JavaScript origins".
 // 5. Copy the Client ID and paste it below.
-const GOOGLE_CLIENT_ID = '987654321098-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.apps.googleusercontent.com'; // Replace with your actual Google Client ID
+const GOOGLE_CLIENT_ID = '397188489507-ofu7maggc7243iqotumjllkboaho73v7.apps.googleusercontent.com'; // Replace with your actual Google Client ID
 
 // Extend the Window interface to include the `google` object from the GSI script
 declare global {
@@ -34,7 +33,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ onSuccess, onEr
 
         const checkGoogle = () => {
             if (window.google?.accounts?.id) {
-                if (GOOGLE_CLIENT_ID.startsWith('YOUR_GOOGLE_CLIENT_ID')) {
+                if (GOOGLE_CLIENT_ID !== '397188489507-ofu7maggc7243iqotumjllkboaho73v7.apps.googleusercontent.com') {
                     console.error('ERROR: Google Client ID is not set in GoogleSignInButton.tsx. Please follow the setup instructions in the component file.');
                     if (buttonRef.current) {
                         buttonRef.current.innerHTML = '<div class="text-center p-3 bg-accent-red/10 border border-accent-red rounded-md text-sm text-accent-red" style="max-width: 320px;">Google Sign-In is not configured. <br/> Please set the Client ID.</div>';

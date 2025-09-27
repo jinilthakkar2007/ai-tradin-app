@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trade, PriceAlert, UserStats, TradeDirection, Prices } from '../types';
@@ -20,6 +21,7 @@ interface DashboardProps {
   onEditTrade: (trade: Trade) => void;
   onDeleteTrade: (tradeId: string) => void;
   onSetPriceAlert: (tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => void;
+  onCloseTrade: (trade: Trade) => void;
   onOpenJournal: (trade: Trade) => void;
   onQuickTrade: (prefillData: { asset: string; direction: TradeDirection; entryPrice: number; }) => void;
 }
@@ -33,6 +35,7 @@ const Dashboard = ({
     onEditTrade, 
     onDeleteTrade, 
     onSetPriceAlert, 
+    onCloseTrade,
     onOpenJournal, 
     onQuickTrade,
 }: DashboardProps) => {
@@ -107,6 +110,7 @@ const Dashboard = ({
                                 onEditTrade={onEditTrade}
                                 onDeleteTrade={onDeleteTrade}
                                 onSetPriceAlert={onSetPriceAlert}
+                                onCloseTrade={onCloseTrade}
                                 onOpenJournal={onOpenJournal}
                             />
                         </div>

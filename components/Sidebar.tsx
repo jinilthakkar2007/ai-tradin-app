@@ -13,6 +13,7 @@ import UserProfile from './UserProfile';
 import FlaskIcon from './icons/FlaskIcon';
 import CopyIcon from './icons/CopyIcon';
 import HistoryIcon from './icons/HistoryIcon';
+import WandIcon from './icons/WandIcon';
 
 interface SidebarProps {
   activeView: View;
@@ -25,6 +26,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+    { view: 'copilot' as const, icon: <WandIcon />, label: 'AI Co-Pilot', premium: true },
     { view: 'dashboard' as const, icon: <ChartIcon />, label: 'Dashboard', premium: false },
     { view: 'portfolio' as const, icon: <PieChartIcon />, label: 'Portfolio', premium: false },
     { view: 'market' as const, icon: <MarketIcon />, label: 'Market', premium: false },

@@ -1,4 +1,5 @@
 
+
 import { Trade, MarketData, UserSettings } from './types';
 
 export const ASSET_SYMBOLS = [
@@ -96,12 +97,24 @@ export const MOCK_NEWS_CONFIG = {
     ],
 };
 
+export const MOCK_SENTIMENT_HEADLINES = [
+    "Global markets rally on positive inflation data, S&P 500 hits new all-time high.",
+    "Bitcoin ETF inflows reach record levels, pushing BTC price towards key resistance.",
+    "SEC delays decision on Ethereum spot ETF, causing uncertainty in the ETH market.",
+    "Tech stocks surge as NVIDIA announces breakthrough in AI chip technology.",
+    "Geopolitical tensions in Eastern Europe lead to a spike in oil and gold prices.",
+    "Fear & Greed Index moves into 'Extreme Greed' territory, suggesting a potential pullback.",
+    "Analysts predict a strong quarter for US equities, citing robust corporate earnings.",
+];
+
+
 export const DEFAULT_USER_SETTINGS: UserSettings = {
     defaultCurrency: 'USD',
     notifications: {
         tradeAlerts: true,
         aiCommentary: true,
         marketNews: false,
+        soundAlerts: true,
     },
     chart: {
         defaultMA: true,

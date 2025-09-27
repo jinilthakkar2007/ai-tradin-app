@@ -1,7 +1,9 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader, Prices } from './types';
+// FIX: Added JournalEntry to imports
+import { Trade, View, Alert, PriceAlert, User, UserStats, UserSettings, TradeDirection, ProTrader, Prices, GlobalPriceAlert, MarketData, JournalEntry } from './types';
 import { useAuth } from './hooks/useAuth';
 import { useTradeMonitor } from './hooks/useTradeMonitor';
 
@@ -22,13 +24,16 @@ import OnboardingModal from './components/OnboardingModal';
 import BacktestingView from './components/BacktestingView';
 import CopyTradingView from './components/CopyTradingView';
 import HistoryView from './components/HistoryView';
+import GlobalPriceAlertModal from './components/GlobalPriceAlertModal';
+import CloseTradeModal from './components/CloseTradeModal';
+import UpgradeToPremium from './components/UpgradeToPremium';
+import AICopilotView from './components/AICopilotView';
 
 // Modals for User/Auth
 import AccountModal from './components/AccountModal';
 import UpgradeModal from './components/UpgradeModal';
 import SettingsModal from './components/SettingsModal';
 import AuthPage from './components/AuthPage';
-import VerificationSuccessModal from './components/VerificationSuccessModal';
 
 // Toasts
 import ToastContainer from './components/ToastContainer';
@@ -37,6 +42,8 @@ import ToastContainer from './components/ToastContainer';
 import { MOCK_TRADES, DEFAULT_USER_SETTINGS } from './constants';
 import { proTraderService } from './services/proTraderService';
 
+const ALERT_AUDIO_SRC = `data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaW5nIGNyZWF0ZWQgYnkgSm9zZXBoIFNhcmRpbiBhdCBqc2FyZGluLmNvbS9zb3VuZG-lZmZlY3RzLwAAAIBvAAAAANIAAAARMQ8EAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq-qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqADRAAAGkAAAAAAAAAABQSU5GTwAAAAwAAAABAAADSAAAAABMYXZjNTguMjkuMTAwAAAAAAAAAAAAAAAAAAAAAAAAAAAA//MQxAAD/GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX1UQxAAD/GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/9UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/9UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/9UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/1UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/5UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/5UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/1UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/1UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/1UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/5UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/5UQxRAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/1UQxBAD/8GkAAAAAAAAAAAAAAVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX`;
+
 const App: React.FC = () => {
     // Main state
     const [trades, setTrades] = useState<Trade[]>(() => {
@@ -44,15 +51,31 @@ const App: React.FC = () => {
         return savedTrades ? JSON.parse(savedTrades) : MOCK_TRADES;
     });
     const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [view, setView] = useState<View>('dashboard');
-    const { user, setUser, logout, loadingAuth, authError, isNewlyVerified, acknowledgeVerification } = useAuth();
+    const [globalPriceAlerts, setGlobalPriceAlerts] = useState<GlobalPriceAlert[]>(() => {
+        const saved = localStorage.getItem('globalPriceAlerts');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [view, setView] = useState<View>('copilot');
+    const { user, setUser, logout, loadingAuth, authError } = useAuth();
     const [userSettings, setUserSettings] = useState<UserSettings>(() => {
         try {
             const savedSettings = localStorage.getItem('userSettings');
             if (savedSettings) {
                 const parsedSettings = JSON.parse(savedSettings);
-                // Merge with defaults to ensure all keys are present, even if settings structure changes
-                return { ...DEFAULT_USER_SETTINGS, ...parsedSettings };
+                // Perform a deep merge to ensure all keys from defaults are present
+                const mergedSettings: UserSettings = {
+                    ...DEFAULT_USER_SETTINGS,
+                    ...parsedSettings,
+                    notifications: {
+                        ...DEFAULT_USER_SETTINGS.notifications,
+                        ...(parsedSettings.notifications || {}),
+                    },
+                    chart: {
+                        ...DEFAULT_USER_SETTINGS.chart,
+                        ...(parsedSettings.chart || {}),
+                    },
+                };
+                return mergedSettings;
             }
         } catch (error) {
             console.error("Failed to parse user settings from localStorage, using defaults.", error);
@@ -71,10 +94,12 @@ const App: React.FC = () => {
     // Modal states
     const [isNewTradeFormVisible, setIsNewTradeFormVisible] = useState(false);
     const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+    const [closingTrade, setClosingTrade] = useState<Trade | null>(null);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [journalingTrade, setJournalingTrade] = useState<Trade | null>(null);
     const [quickTradeData, setQuickTradeData] = useState<Partial<Omit<Trade, 'id' | 'status' | 'openDate'>> | null>(null);
-    
+    const [globalAlertData, setGlobalAlertData] = useState<{ asset: MarketData; alert?: GlobalPriceAlert } | null>(null);
+
     // Auth/User modal states
     const [isAccountModalVisible, setIsAccountModalVisible] = useState(false);
     const [isUpgradeModalVisible, setIsUpgradeModalVisible] = useState(false);
@@ -82,6 +107,7 @@ const App: React.FC = () => {
 
     // Toast state
     const [toasts, setToasts] = useState<Alert[]>([]);
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
         localStorage.setItem('trades', JSON.stringify(trades));
@@ -94,16 +120,20 @@ const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('copiedTraders', JSON.stringify(Array.from(copiedTraders)));
     }, [copiedTraders]);
+    
+    useEffect(() => {
+        localStorage.setItem('globalPriceAlerts', JSON.stringify(globalPriceAlerts));
+    }, [globalPriceAlerts]);
 
     // Derived state
     const activeTrades = useMemo(() => trades.filter(t => t.status === 'ACTIVE'), [trades]);
     const tradeHistory = useMemo(() => trades.filter(t => t.status !== 'ACTIVE').sort((a, b) => new Date(b.closeDate!).getTime() - new Date(a.closeDate!).getTime()), [trades]);
     const unreadAlerts = useMemo(() => alerts.filter(a => !a.read), [alerts]);
 
-    const createAlert = useCallback((trade: Trade, message: string, type: 'success' | 'error' | 'info', skipToast = false) => {
+    const createAlert = useCallback((trade: Trade | { asset: string, id?: string }, message: string, type: 'success' | 'error' | 'info', skipToast = false) => {
         const newAlert: Alert = {
             id: `alert-${Date.now()}-${Math.random()}`,
-            tradeId: trade.id,
+            tradeId: 'id' in trade ? trade.id : 'system-global',
             asset: trade.asset,
             message,
             timestamp: new Date().toISOString(),
@@ -113,8 +143,11 @@ const App: React.FC = () => {
         setAlerts(prev => [newAlert, ...prev]);
         if (!skipToast) {
             setToasts(prev => [newAlert, ...prev]);
+            if (userSettings.notifications.soundAlerts) {
+                audioRef.current?.play().catch(error => console.error("Audio playback failed:", error));
+            }
         }
-    }, []);
+    }, [userSettings.notifications.soundAlerts]);
     
     const handleTradeTrigger = useCallback((trade: Trade, status: 'CLOSED_TP' | 'CLOSED_SL', price: number) => {
         setTrades(prev => prev.map(t => {
@@ -136,6 +169,24 @@ const App: React.FC = () => {
         }));
     }, [createAlert]);
 
+    const handleManualClose = useCallback((tradeToClose: Trade, closePrice: number) => {
+        setTrades(prev => prev.map(t => {
+            if (t.id === tradeToClose.id) {
+                const isWin = (t.direction === 'LONG' && closePrice > t.entryPrice) || (t.direction === 'SHORT' && closePrice < t.entryPrice);
+                const status: 'CLOSED_TP' | 'CLOSED_SL' = isWin ? 'CLOSED_TP' : 'CLOSED_SL';
+
+                const updatedTrade = { ...t, status, closePrice, closeDate: new Date().toISOString() };
+                
+                const message = `Manually closed ${t.asset} trade at $${closePrice.toLocaleString()}.`;
+                createAlert(updatedTrade, message, isWin ? 'success' : 'error');
+                
+                return updatedTrade;
+            }
+            return t;
+        }));
+        setClosingTrade(null);
+    }, [createAlert]);
+
     const handleCustomAlert = useCallback((trade: Trade) => {
         setTrades(prev => prev.map(t => {
             if (t.id === trade.id && t.priceAlert && !t.priceAlert.triggered) {
@@ -146,8 +197,14 @@ const App: React.FC = () => {
             return t;
         }));
     }, [createAlert]);
+    
+    const handleGlobalAlertTrigger = useCallback((globalAlert: GlobalPriceAlert) => {
+        const message = `Price alert for ${globalAlert.asset}: Price is now ${globalAlert.condition.toLowerCase()} $${globalAlert.price.toLocaleString()}.`;
+        createAlert({ asset: globalAlert.asset }, message, 'info');
+        setGlobalPriceAlerts(prev => prev.filter(a => a.id !== globalAlert.id));
+    }, [createAlert]);
 
-    const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert);
+    const { prices } = useTradeMonitor(activeTrades, handleTradeTrigger, handleCustomAlert, globalPriceAlerts, handleGlobalAlertTrigger);
 
     const addTrade = useCallback((tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
         const newTrade: Trade = {
@@ -174,113 +231,130 @@ const App: React.FC = () => {
             if (copiedTraders.has(trader.id)) {
                 const newCopiedTrade = addTrade(trade);
                 // Create a special toast for copied trades
+                // FIX: Fill in all required properties for the Alert type.
                 const toastAlert: Alert = {
                     id: `toast-${Date.now()}`,
                     tradeId: newCopiedTrade.id,
                     asset: newCopiedTrade.asset,
-                    message: `Copied new ${trade.direction} trade from ${trader.name}.`,
+                    message: `Copied ${trader.name}'s new ${newCopiedTrade.direction} trade.`,
                     timestamp: new Date().toISOString(),
                     type: 'info',
-                    read: true, // It's just a toast, not a permanent alert
+                    read: false,
                 };
                 setToasts(prev => [toastAlert, ...prev]);
             }
         };
-        
-        proTraderService.subscribe(handleNewProTrade);
+
+        if (user?.subscriptionTier === 'Premium') {
+            proTraderService.subscribe(handleNewProTrade);
+        }
+
         return () => proTraderService.unsubscribe();
-    }, [copiedTraders, addTrade]);
+    }, [copiedTraders, addTrade, user?.subscriptionTier]);
+
+    // Additional handlers for UI interactivity
+    const removeToast = useCallback((id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+    const markAlertAsRead = useCallback((alertId: string) => {
+        setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, read: true } : a));
+    }, []);
     
-    const simulateTrade = (tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
-        const newTrade: Trade = {
-            ...tradeData,
-            id: `trade-${Date.now()}-sim-`,
-            status: 'ACTIVE',
-            openDate: new Date().toISOString(),
-        };
-
-        // Simulate a random outcome
-        const isWin = Math.random() > 0.5;
-        const closePrice = isWin 
-            ? newTrade.takeProfits[0].price
-            : newTrade.stopLoss;
-
-        const closedTrade: Trade = {
-            ...newTrade,
-            status: isWin ? 'CLOSED_TP' : 'CLOSED_SL',
-            closePrice,
-            closeDate: new Date(Date.now() + 1000).toISOString() // a moment later
-        };
-
-        setTrades(prev => [closedTrade, ...prev]);
-        setIsNewTradeFormVisible(false);
-
-        const message = `Simulated trade for ${closedTrade.asset} closed as a ${isWin ? 'WIN' : 'LOSS'}.`;
-        createAlert(closedTrade, message, isWin ? 'success' : 'error');
-    };
-
     const updateTrade = useCallback((updatedTrade: Trade) => {
         setTrades(prev => prev.map(t => t.id === updatedTrade.id ? updatedTrade : t));
         setEditingTrade(null);
-    }, []);
+        createAlert(updatedTrade, `Trade for ${updatedTrade.asset} has been updated.`, 'info', true);
+    }, [createAlert]);
 
     const deleteTrade = useCallback((tradeId: string) => {
-        setTrades(prev => prev.filter(t => t.id !== tradeId));
+        if (window.confirm('Are you sure you want to delete this active trade? This cannot be undone.')) {
+            setTrades(prev => prev.filter(t => t.id !== tradeId));
+        }
     }, []);
-
+    
     const deleteTrades = useCallback((tradeIds: string[]) => {
         setTrades(prev => prev.filter(t => !tradeIds.includes(t.id)));
     }, []);
 
     const setPriceAlert = useCallback((tradeId: string, priceAlert: Omit<PriceAlert, 'triggered'> | null) => {
-        setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, priceAlert: priceAlert ? { ...priceAlert, triggered: false } : null } : t));
+        setTrades(prev => prev.map(t =>
+            t.id === tradeId ? { ...t, priceAlert: priceAlert ? { ...priceAlert, triggered: false } : null } : t
+        ));
     }, []);
 
     const addJournalNote = useCallback((tradeId: string, note: string) => {
+        const newEntry: JournalEntry = {
+            timestamp: new Date().toISOString(),
+            note,
+        };
         setTrades(prev => prev.map(t => {
             if (t.id === tradeId) {
-                const newEntry = { timestamp: new Date().toISOString(), note };
-                return { ...t, journal: [...(t.journal || []), newEntry] };
+                const updatedTrade = { ...t, journal: [...(t.journal || []), newEntry] };
+                setJournalingTrade(updatedTrade);
+                return updatedTrade;
             }
             return t;
         }));
     }, []);
     
-    const handleSimulateOutcome = useCallback((tradeId: string) => {
-         const trade = trades.find(t => t.id === tradeId);
-         if (!trade) return;
-         
-         const isWin = Math.random() > 0.5;
-         const price = isWin ? trade.takeProfits[0].price : trade.stopLoss;
-         const status = isWin ? 'CLOSED_TP' : 'CLOSED_SL';
-         
-         handleTradeTrigger(trade, status, price);
-         setEditingTrade(null);
+    const addTradeAndSimulate = useCallback((tradeData: Omit<Trade, 'id' | 'status' | 'openDate'>) => {
+        const newTrade = addTrade(tradeData);
+        if (newTrade) {
+            setTimeout(() => {
+                const isWin = Math.random() > 0.5;
+                const status = isWin ? 'CLOSED_TP' : 'CLOSED_SL';
+                const closePrice = isWin ? newTrade.takeProfits[0].price : newTrade.stopLoss;
+                handleTradeTrigger(newTrade, status, closePrice);
+                createAlert(newTrade, `Simulated trade for ${newTrade.asset} closed as a ${isWin ? 'win' : 'loss'}.`, isWin ? 'success' : 'error');
+            }, 500);
+        }
+        setIsNewTradeFormVisible(false);
+    }, [addTrade, handleTradeTrigger, createAlert]);
+    
+    const simulateTradeOutcome = useCallback((tradeId: string) => {
+        const trade = trades.find(t => t.id === tradeId);
+        if (trade) {
+            const isWin = Math.random() > 0.5;
+            const status = isWin ? 'CLOSED_TP' : 'CLOSED_SL';
+            const closePrice = isWin ? trade.takeProfits[0].price : trade.stopLoss;
+            handleTradeTrigger(trade, status, closePrice);
+        }
+        setEditingTrade(null);
     }, [trades, handleTradeTrigger]);
-
-    const handleShowAlertDetails = useCallback((alert: Alert) => {
-        setSelectedAlert(alert);
-        setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, read: true } : a));
-    }, []);
-
+    
     const handleCommentaryFetched = useCallback((alertId: string, commentary: string) => {
         setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, aiCommentary: commentary } : a));
     }, []);
 
-    const handleDismissToast = useCallback((id: string) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
+    const handleSetGlobalAlert = useCallback((alertData: Omit<GlobalPriceAlert, 'createdAt'>) => {
+        setGlobalPriceAlerts(prev => {
+            const existing = prev.find(a => a.id === alertData.id);
+            if (existing) {
+                return prev.map(a => a.id === alertData.id ? { ...a, ...alertData, createdAt: a.createdAt } : a);
+            }
+            return [...prev, { ...alertData, createdAt: new Date().toISOString() }];
+        });
+        setGlobalAlertData(null);
     }, []);
-
+    
+    const handleDeleteGlobalAlert = useCallback((alertId: string) => {
+        setGlobalPriceAlerts(prev => prev.filter(a => a.id !== alertId));
+        setGlobalAlertData(null);
+    }, []);
+    
     const handleUpgrade = useCallback(() => {
-        if(user) {
-            // In a real app, this would involve a payment flow and backend update.
-            // For now, we just update the local user state.
+        if (user) {
             setUser({ ...user, subscriptionTier: 'Premium' });
+            setIsUpgradeModalVisible(false);
         }
-        setIsUpgradeModalVisible(false);
     }, [user, setUser]);
 
-    const handleToggleCopyTrader = useCallback((traderId: string) => {
+    const updateUserSettings = useCallback((newSettings: UserSettings) => {
+        setUserSettings(newSettings);
+    }, []);
+    
+    const toggleCopiedTrader = useCallback((traderId: string) => {
         setCopiedTraders(prev => {
             const newSet = new Set(prev);
             if (newSet.has(traderId)) {
@@ -292,42 +366,81 @@ const App: React.FC = () => {
         });
     }, []);
 
-    const userStats: UserStats = useMemo(() => {
+    const stats: UserStats = useMemo(() => {
         const closedTrades = tradeHistory;
-        const totalTrades = closedTrades.length;
-        if (totalTrades === 0) {
-            return { totalTrades: trades.length, winRate: 0, totalPL: 0, avgWin: 0, avgLoss: 0, profitFactor: 0 };
-        }
+        const totalTrades = trades.length;
         
-        let wins = 0;
         let totalPL = 0;
+        let wins = 0;
         let grossProfit = 0;
         let grossLoss = 0;
-        let winningTrades = 0;
-        let losingTrades = 0;
 
-        closedTrades.forEach(t => {
-            const pnl = (t.closePrice! - t.entryPrice) * t.quantity * (t.direction === 'LONG' ? 1 : -1);
-            totalPL += pnl;
-            if (pnl > 0) {
-                wins++;
-                winningTrades++;
-                grossProfit += pnl;
-            } else {
-                losingTrades++;
-                grossLoss += Math.abs(pnl);
+        closedTrades.forEach(trade => {
+            if (trade.closePrice) {
+                const pnl = (trade.closePrice - trade.entryPrice) * trade.quantity * (trade.direction === 'LONG' ? 1 : -1);
+                totalPL += pnl;
+                if (pnl > 0) {
+                    wins++;
+                    grossProfit += pnl;
+                } else {
+                    grossLoss += Math.abs(pnl);
+                }
             }
         });
+        
+        activeTrades.forEach(trade => {
+            const currentPrice = prices[trade.asset] || trade.entryPrice;
+            const unrealizedPnl = (currentPrice - trade.entryPrice) * trade.quantity * (trade.direction === 'LONG' ? 1 : -1);
+            totalPL += unrealizedPnl;
+        });
+
+        const closedTradesCount = closedTrades.length;
+        if (closedTradesCount === 0) {
+            return { totalTrades, winRate: 0, totalPL: parseFloat(totalPL.toFixed(2)), avgWin: 0, avgLoss: 0, profitFactor: 0 };
+        }
+
+        const winRate = (wins / closedTradesCount) * 100;
+        const avgWin = wins > 0 ? grossProfit / wins : 0;
+        const avgLoss = (closedTradesCount - wins) > 0 ? grossLoss / (closedTradesCount - wins) : 0;
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : Infinity;
 
         return {
-            totalTrades: trades.length,
-            winRate: parseFloat(((wins / totalTrades) * 100).toFixed(2)),
+            totalTrades,
+            winRate: parseFloat(winRate.toFixed(2)),
             totalPL: parseFloat(totalPL.toFixed(2)),
-            avgWin: winningTrades > 0 ? parseFloat((grossProfit / winningTrades).toFixed(2)) : 0,
-            avgLoss: losingTrades > 0 ? parseFloat((grossLoss / losingTrades).toFixed(2)) : 0,
-            profitFactor: grossLoss > 0 ? parseFloat((grossProfit / grossLoss).toFixed(2)) : Infinity,
+            avgWin: parseFloat(avgWin.toFixed(2)),
+            avgLoss: parseFloat(avgLoss.toFixed(2)),
+            profitFactor: isFinite(profitFactor) ? parseFloat(profitFactor.toFixed(2)) : 0,
         };
-    }, [trades, tradeHistory]);
+    }, [trades, tradeHistory, activeTrades, prices]);
+
+    const renderView = () => {
+        if (!user) return null;
+        switch (view) {
+            case 'copilot':
+                return user.subscriptionTier === 'Premium' ? <AICopilotView user={user} stats={stats} activeTrades={activeTrades} onQuickTrade={setQuickTradeData} prices={prices} onCloseTrade={setClosingTrade} onUpdateTrade={updateTrade} /> : <UpgradeToPremium onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
+            case 'dashboard':
+                return <Dashboard stats={stats} trades={trades} prices={prices} onNewTrade={() => setIsNewTradeFormVisible(true)} onEditTrade={setEditingTrade} onDeleteTrade={deleteTrade} onSetPriceAlert={setPriceAlert} onCloseTrade={setClosingTrade} onOpenJournal={setJournalingTrade} onQuickTrade={setQuickTradeData} />;
+            case 'history':
+                return <HistoryView tradeHistory={tradeHistory} onOpenJournal={setJournalingTrade} onDeleteTrades={deleteTrades} />;
+            case 'alerts':
+                return <AlertsView alerts={alerts} onShowAlert={(alert) => { setSelectedAlert(alert); markAlertAsRead(alert.id); }} />;
+            case 'chatbot':
+                return user.subscriptionTier === 'Premium' ? <TradeChatbot onAddTrade={addTrade} /> : <UpgradeToPremium onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
+            case 'market':
+                return <MarketView trades={trades} activeTrades={activeTrades} onNewTrade={(data) => setQuickTradeData(data)} userSettings={userSettings} selectedAssetSymbol={selectedMarketAsset} setSelectedAssetSymbol={setSelectedMarketAsset} prices={prices} onEditTrade={setEditingTrade} onDeleteTrade={deleteTrade} onSetPriceAlert={setPriceAlert} onCloseTrade={setClosingTrade} onOpenJournal={setJournalingTrade} globalPriceAlerts={globalPriceAlerts} onSetGlobalAlert={(asset, alert) => setGlobalAlertData({ asset, alert })} onDeleteGlobalAlert={handleDeleteGlobalAlert} />;
+            case 'portfolio':
+                return <PortfolioView stats={stats} activeTrades={activeTrades} tradeHistory={tradeHistory} prices={prices} />;
+            case 'strategy':
+                return <StrategyBuilder isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
+            case 'backtesting':
+                return <BacktestingView isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />;
+            case 'copy-trading':
+                return <CopyTradingView isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} copiedTraders={copiedTraders} onToggleCopy={toggleCopiedTrader} />;
+            default:
+                return <Dashboard stats={stats} trades={trades} prices={prices} onNewTrade={() => setIsNewTradeFormVisible(true)} onEditTrade={setEditingTrade} onDeleteTrade={deleteTrade} onSetPriceAlert={setPriceAlert} onCloseTrade={setClosingTrade} onOpenJournal={setJournalingTrade} onQuickTrade={setQuickTradeData} />;
+        }
+    };
 
     if (loadingAuth) {
         return (
@@ -336,193 +449,50 @@ const App: React.FC = () => {
             </div>
         );
     }
-    
+
     if (!user) {
         return <AuthPage authError={authError} />;
     }
     
-    const handleOnboardingComplete = () => {
-        localStorage.setItem('hasOnboarded', 'true');
-        setHasOnboarded(true);
-    }
-    
-    const handleQuickTrade = (prefillData: { asset: string, direction: TradeDirection, entryPrice: number }) => {
-        setQuickTradeData(prefillData);
-    };
-
-    const motionProps = {
-      initial: { opacity: 0, y: 15 },
-      animate: { opacity: 1, y: 0 },
-      exit: { opacity: 0, y: -15 },
-      transition: { duration: 0.25 },
-      className: "w-full h-full"
-    };
-
+    // FIX: Add the main JSX return to render the application.
     return (
-        <div className="bg-background text-text-primary min-h-screen flex">
-            <Sidebar 
-                activeView={view} 
-                onNavigate={setView} 
-                user={user} 
-                onLogout={logout} 
-                onShowAccount={() => setIsAccountModalVisible(true)}
-                onShowSettings={() => setIsSettingsModalVisible(true)}
-                alertCount={unreadAlerts.length}
+        <div className="bg-background text-text-primary min-h-screen font-sans">
+            {!hasOnboarded && <OnboardingModal onComplete={() => { setHasOnboarded(true); localStorage.setItem('hasOnboarded', 'true'); }} />}
+            <audio ref={audioRef} src={ALERT_AUDIO_SRC} />
+            <ToastContainer
+                toasts={toasts}
+                onDismiss={removeToast}
+                onShowAlert={(alert) => { setSelectedAlert(alert); markAlertAsRead(alert.id); }}
             />
-            <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto">
-                <AnimatePresence mode="wait">
-                    {view === 'dashboard' && (
-                        <motion.div key="dashboard" {...motionProps}>
-                            <Dashboard 
-                                stats={userStats} 
-                                trades={trades} 
-                                prices={prices}
-                                onNewTrade={() => setIsNewTradeFormVisible(true)}
-                                onEditTrade={setEditingTrade}
-                                onDeleteTrade={deleteTrade}
-                                onSetPriceAlert={setPriceAlert}
-                                onOpenJournal={setJournalingTrade}
-                                onQuickTrade={handleQuickTrade}
-                            />
-                        </motion.div>
-                    )}
-                    {view === 'alerts' && (
-                         <motion.div key="alerts" {...motionProps}>
-                            <AlertsView alerts={alerts} onShowAlert={handleShowAlertDetails} />
-                        </motion.div>
-                    )}
-                    {view === 'history' && (
-                        <motion.div key="history" {...motionProps}>
-                            <HistoryView 
-                                tradeHistory={tradeHistory} 
-                                onOpenJournal={setJournalingTrade}
-                                onDeleteTrades={deleteTrades}
-                            />
-                        </motion.div>
-                    )}
-                    {view === 'copy-trading' && (
-                        <motion.div key="copy-trading" {...motionProps}>
-                            <CopyTradingView 
-                                isPremium={user.subscriptionTier === 'Premium'} 
-                                onUpgradeClick={() => setIsUpgradeModalVisible(true)}
-                                copiedTraders={copiedTraders}
-                                onToggleCopy={handleToggleCopyTrader}
-                            />
-                        </motion.div>
-                    )}
-                    {view === 'chatbot' && (
-                        <motion.div key="chatbot" {...motionProps}>
-                            {user.subscriptionTier === 'Premium' ? 
-                                <TradeChatbot onAddTrade={addTrade} /> : 
-                                <StrategyBuilder isPremium={false} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />}
-                        </motion.div>
-                    )}
-                    {view === 'market' && (
-                        <motion.div key="market" {...motionProps}>
-                            <MarketView 
-                                trades={trades}
-                                activeTrades={activeTrades} 
-                                onNewTrade={handleQuickTrade} 
-                                userSettings={userSettings}
-                                selectedAssetSymbol={selectedMarketAsset}
-                                setSelectedAssetSymbol={setSelectedMarketAsset}
-                                prices={prices}
-                                onEditTrade={setEditingTrade}
-                                onDeleteTrade={deleteTrade}
-                                onSetPriceAlert={setPriceAlert}
-                                onOpenJournal={setJournalingTrade}
-                            />
-                        </motion.div>
-                    )}
-                    {view === 'portfolio' && (
-                        <motion.div key="portfolio" {...motionProps}>
-                            <PortfolioView 
-                                stats={userStats} 
-                                activeTrades={activeTrades} 
-                                tradeHistory={tradeHistory}
-                                prices={prices}
-                            />
-                        </motion.div>
-                    )}
-                    {view === 'strategy' && (
-                        <motion.div key="strategy" {...motionProps}>
-                            <StrategyBuilder isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />
-                        </motion.div>
-                    )}
-                    {view === 'backtesting' && (
-                        <motion.div key="backtesting" {...motionProps}>
-                            <BacktestingView isPremium={user.subscriptionTier === 'Premium'} onUpgradeClick={() => setIsUpgradeModalVisible(true)} />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </main>
+
+            <div className="flex">
+                <Sidebar 
+                    user={user}
+                    activeView={view}
+                    onNavigate={setView}
+                    onLogout={logout}
+                    alertCount={unreadAlerts.length}
+                    onShowAccount={() => setIsAccountModalVisible(true)}
+                    onShowSettings={() => setIsSettingsModalVisible(true)}
+                />
+                <main className="flex-1 p-6 sm:p-8 h-screen overflow-y-auto">
+                    {renderView()}
+                </main>
+            </div>
 
             <AnimatePresence>
-                {isNewlyVerified && <VerificationSuccessModal onContinue={acknowledgeVerification} />}
-
-                {!hasOnboarded && <OnboardingModal onComplete={handleOnboardingComplete} />}
-
-                {isNewTradeFormVisible && (
-                    <NewTradeForm 
-                        onAddTrade={addTrade}
-                        onAddAndSimulate={simulateTrade}
-                        onClose={() => setIsNewTradeFormVisible(false)} 
-                    />
-                )}
-                {editingTrade && (
-                    <EditTradeModal 
-                        trade={editingTrade}
-                        onUpdateTrade={updateTrade}
-                        onSimulateOutcome={handleSimulateOutcome}
-                        onClose={() => setEditingTrade(null)}
-                    />
-                )}
-                {selectedAlert && (
-                    <AlertModal 
-                        alert={selectedAlert}
-                        trades={trades}
-                        onClose={() => setSelectedAlert(null)}
-                        onCommentaryFetched={handleCommentaryFetched}
-                    />
-                )}
-                {journalingTrade && (
-                    <JournalModal
-                        trade={journalingTrade}
-                        onClose={() => setJournalingTrade(null)}
-                        onAddNote={(note) => addJournalNote(journalingTrade.id, note)}
-                    />
-                )}
-                {quickTradeData && (
-                    <QuickTradeModal
-                        prefillData={quickTradeData}
-                        onAddTrade={addTrade}
-                        onClose={() => setQuickTradeData(null)}
-                    />
-                )}
-                {isAccountModalVisible && (
-                    <AccountModal 
-                        user={user} 
-                        stats={userStats} 
-                        onClose={() => setIsAccountModalVisible(false)} 
-                        onOpenUpgradeModal={() => { setIsAccountModalVisible(false); setIsUpgradeModalVisible(true); }}
-                    />
-                )}
-                {isUpgradeModalVisible && (
-                    <UpgradeModal
-                        onClose={() => setIsUpgradeModalVisible(false)}
-                        onUpgrade={handleUpgrade}
-                    />
-                )}
-                {isSettingsModalVisible && (
-                    <SettingsModal
-                        settings={userSettings}
-                        onClose={() => setIsSettingsModalVisible(false)}
-                        onSave={setUserSettings}
-                    />
-                )}
+                {isNewTradeFormVisible && <NewTradeForm onClose={() => setIsNewTradeFormVisible(false)} onAddTrade={addTrade} onAddAndSimulate={addTradeAndSimulate} />}
+                {editingTrade && <EditTradeModal trade={editingTrade} onClose={() => setEditingTrade(null)} onUpdateTrade={updateTrade} onSimulateOutcome={simulateTradeOutcome} />}
+                {closingTrade && <CloseTradeModal trade={closingTrade} prices={prices} onClose={() => setClosingTrade(null)} onConfirmClose={(closePrice) => handleManualClose(closingTrade, closePrice)} />}
+                {selectedAlert && <AlertModal alert={selectedAlert} trades={trades} onClose={() => setSelectedAlert(null)} onCommentaryFetched={handleCommentaryFetched} />}
+                {journalingTrade && <JournalModal trade={journalingTrade} onClose={() => setJournalingTrade(null)} onAddNote={(note) => addJournalNote(journalingTrade.id, note)} />}
+                {quickTradeData && <QuickTradeModal prefillData={quickTradeData} onClose={() => setQuickTradeData(null)} onAddTrade={addTrade} />}
+                {globalAlertData && <GlobalPriceAlertModal data={globalAlertData} onClose={() => setGlobalAlertData(null)} onSave={handleSetGlobalAlert} onDelete={handleDeleteGlobalAlert}/>}
+                
+                {isAccountModalVisible && user && <AccountModal user={user} stats={stats} onClose={() => setIsAccountModalVisible(false)} onOpenUpgradeModal={() => { setIsAccountModalVisible(false); setIsUpgradeModalVisible(true); }} />}
+                {isUpgradeModalVisible && <UpgradeModal onClose={() => setIsUpgradeModalVisible(false)} onUpgrade={handleUpgrade} />}
+                {isSettingsModalVisible && <SettingsModal settings={userSettings} onClose={() => setIsSettingsModalVisible(false)} onSave={updateUserSettings} />}
             </AnimatePresence>
-            
-            <ToastContainer toasts={toasts} onDismiss={handleDismissToast} onShowAlert={handleShowAlertDetails} />
         </div>
     );
 };

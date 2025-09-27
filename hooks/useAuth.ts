@@ -22,7 +22,6 @@ export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
     const [authError, setAuthError] = useState<string | null>(null);
-    const [isNewlyVerified, setIsNewlyVerified] = useState(false);
 
     useEffect(() => {
         // FIX: Replaced synchronous `session()` (v1) with asynchronous `getSession()` (v2) to get the initial session.
@@ -39,19 +38,10 @@ export const useAuth = () => {
         // FIX: Corrected `onAuthStateChange` to use v2 API's return value structure.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (_event, session: Session | null) => {
-                if (_event === 'SIGNED_IN' && session?.user) {
-                    const awaitingEmail = localStorage.getItem('awaitingVerification');
-                    if (awaitingEmail && awaitingEmail === session.user.email) {
-                        setIsNewlyVerified(true);
-                        localStorage.removeItem('awaitingVerification');
-                    }
-                }
-
                 if (session?.user) {
                     setUser(formatUser(session.user));
                 } else {
                     setUser(null);
-                    setIsNewlyVerified(false); // Reset on sign out
                 }
                 setLoadingAuth(false);
             }
@@ -68,7 +58,11 @@ export const useAuth = () => {
         setAuthError(null);
         const { error } = await action();
         if (error) {
-            setAuthError(error.message);
+            if (error.message.toLowerCase().includes('captcha')) {
+                setAuthError("CAPTCHA is required by the authentication provider. This application does not have a CAPTCHA integration. Please disable CAPTCHA in your Supabase project's authentication settings to proceed.");
+            } else {
+                setAuthError(error.message);
+            }
         }
         setLoadingAuth(false);
         return { error };
@@ -76,19 +70,17 @@ export const useAuth = () => {
 
     // FIX: Updated `signUp` to use v2 signature, with options object.
     const signUpWithEmail = useCallback(async (email: string, password: string) => {
-        const result = await handleAuthAction(() => 
+        return handleAuthAction(() => 
             supabase.auth.signUp({
                 email,
                 password,
                 options: {
+                    // With email confirmations disabled in Supabase project,
+                    // this will sign the user in directly.
                     emailRedirectTo: window.location.origin
                 }
             })
         );
-        if (!result.error) {
-            localStorage.setItem('awaitingVerification', email);
-        }
-        return result;
     }, []);
 
     // FIX: Replaced `signIn` (v1) with `signInWithPassword` (v2).
@@ -139,10 +131,6 @@ export const useAuth = () => {
         setUser(prev => prev ? { ...prev, ...newUser } : null);
     }, []);
 
-    const acknowledgeVerification = useCallback(() => {
-        setIsNewlyVerified(false);
-    }, []);
-
     return { 
         user, 
         setUser: updateUser,
@@ -155,7 +143,5 @@ export const useAuth = () => {
         signInWithGoogleIdToken,
         sendPasswordResetEmail,
         logout,
-        isNewlyVerified,
-        acknowledgeVerification,
     };
 };
